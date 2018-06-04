@@ -3,16 +3,7 @@ defmodule Kiq do
   Documentation for Kiq.
   """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Kiq.hello
-      :world
-
-  """
-  def hello do
-    :world
+  def enqueue(job) do
+    {:ok, job}
   end
 end
