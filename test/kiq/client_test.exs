@@ -1,21 +1,17 @@
 defmodule Kiq.ClientTest do
   use Kiq.Case, async: true
 
-  @queue "client-test"
+  alias Kiq.{Client, Job, Timestamp}
+
+  @queue "testing"
   @queue_list "queue:#{@queue}"
   @backup_list "queue:#{@queue}:backup"
   @retry_set "retry"
   @schedule_set "schedule"
 
-  defp job(args \\ []) do
-    [class: "Worker", queue: @queue]
-    |> Keyword.merge(args)
-    |> Job.new()
-  end
-
   setup do
-    {:ok, client} = Client.start_link(redis_url: redis_url())
-    {:ok, redis} = Redix.start_link(redis_url())
+    {:ok, client} = start_supervised({Client, redis_url: redis_url()})
+    {:ok, redis} = start_supervised({Redix, [redis_url()]})
 
     :ok = Client.clear_queue(client, @queue)
     :ok = Client.clear_set(client, @retry_set)

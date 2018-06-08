@@ -43,7 +43,7 @@ defmodule Kiq.Client do
 
   @doc false
   @spec dequeue(client(), queue(), pos_integer()) :: list(Job.t())
-  def dequeue(client, queue, count) when is_binary(queue) and is_integer(count) and count > 0 do
+  def dequeue(client, queue, count) when is_binary(queue) and is_integer(count) do
     GenServer.call(client, {:dequeue, queue, count})
   end
 
@@ -115,6 +115,10 @@ defmodule Kiq.Client do
     {:ok, _result} = Redix.command(conn, ["ZADD", set, score, Job.encode(job)])
 
     {:reply, {:ok, job}, state}
+  end
+
+  def handle_call({:dequeue, _queue, 0}, _from, state) do
+    {:reply, [], state}
   end
 
   def handle_call({:dequeue, queue, count}, _from, %State{conn: conn} = state) do

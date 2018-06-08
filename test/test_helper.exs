@@ -1,12 +1,24 @@
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 
+  alias Kiq.Job
+
   using do
     quote do
       import unquote(__MODULE__)
-
-      alias Kiq.{Client, Job, Timestamp}
     end
+  end
+
+  def job(args \\ []) do
+    [class: "Worker", queue: "testing"]
+    |> Keyword.merge(args)
+    |> Job.new()
+  end
+
+  def encoded_job(args \\ []) do
+    args
+    |> job()
+    |> Job.encode()
   end
 
   def redis_url do
