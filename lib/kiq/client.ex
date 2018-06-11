@@ -5,7 +5,7 @@ defmodule Kiq.Client do
 
   alias Kiq.{Job, Timestamp}
 
-  @type client :: GenServer.t()
+  @type client :: GenServer.server()
   @type queue :: binary() | atom()
   @type set :: binary() | atom()
 

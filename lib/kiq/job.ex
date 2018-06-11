@@ -63,7 +63,7 @@ defmodule Kiq.Job do
       ...> Map.take(job, [:class, :args, :queue])
       %{class: "Worker", args: [], queue: "default"}
   """
-  @spec new(args :: Map.t() | Keyword.t()) :: Job.t()
+  @spec new(args :: map() | Keyword.t()) :: t()
   def new(%{class: class} = args) do
     args =
       args
@@ -88,7 +88,7 @@ defmodule Kiq.Job do
 
   During the encoding process any keys with `nil` values are removed.
   """
-  @spec encode(job :: Job.t()) :: binary() | no_return()
+  @spec encode(job :: t()) :: binary() | no_return()
   def encode(%__MODULE__{} = job) do
     job
     |> Map.from_struct()
@@ -106,7 +106,7 @@ defmodule Kiq.Job do
       ...> Map.take(job, [:class, :args])
       %{class: "MyWorker", args: [1, 2]}
   """
-  @spec decode(input :: binary()) :: Job.t() | no_return()
+  @spec decode(input :: binary()) :: t() | no_return()
   def decode(input) when is_binary(input) do
     input
     |> Jason.decode!(keys: :atoms)
