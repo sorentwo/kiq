@@ -48,7 +48,7 @@ defmodule Kiq.Queue.Producer do
   end
 
   def handle_info(:resurrect, %State{client: client, queue: queue} = state) do
-    Client.resurrect(client, queue)
+    :ok = Client.resurrect(client, queue)
 
     {:noreply, [], state}
   end
