@@ -1,3 +1,8 @@
+Logger.configure(level: :info)
+Logger.configure_backend(:console, format: "$message\n")
+
+ExUnit.start()
+
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 
@@ -25,5 +30,3 @@ defmodule Kiq.Case do
     System.get_env("REDIS_URL") || "redis://localhost:6379/3"
   end
 end
-
-ExUnit.start()

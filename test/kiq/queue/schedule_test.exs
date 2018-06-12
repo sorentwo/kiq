@@ -40,7 +40,6 @@ defmodule Kiq.Queue.SchedulerTest do
         |> Stream.repeatedly()
         |> Enum.take(100)
 
-      refute Enum.any?(intervals, &Kernel.==(&1, base_average))
       assert Enum.all?(intervals, &Kernel.>=(&1, 500))
       assert Enum.all?(intervals, &Kernel.<=(&1, 1500))
 
