@@ -32,11 +32,11 @@ defmodule Kiq.Job do
           queue: binary,
           retry: boolean,
           retry_count: pos_integer,
-          at: System.time_unit(),
-          created_at: System.time_unit(),
-          enqueued_at: System.time_unit(),
-          failed_at: System.time_unit(),
-          retried_at: System.time_unit(),
+          at: Timestamp.t(),
+          created_at: Timestamp.t(),
+          enqueued_at: Timestamp.t(),
+          failed_at: Timestamp.t(),
+          retried_at: Timestamp.t(),
           error_message: binary,
           error_class: binary
         }

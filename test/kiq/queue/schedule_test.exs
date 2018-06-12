@@ -1,34 +1,17 @@
 defmodule Kiq.Queue.SchedulerTest do
   use Kiq.Case, async: true
 
+  alias Kiq.EchoClient
   alias Kiq.Queue.Scheduler
 
-  defmodule FakeClient do
-    use GenServer
-
-    def start_link(opts) do
-      GenServer.start_link(__MODULE__, opts)
-    end
-
-    def init(opts) do
-      {:ok, opts}
-    end
-
-    def handle_call(message, _from, state) do
-      send state[:test_pid], message
-
-      {:reply, :ok, state}
-    end
-  end
-
   test "polling triggers descheduling of the set" do
-    {:ok, cli} = start_supervised({FakeClient, test_pid: self()})
+    {:ok, cli} = start_supervised({EchoClient, test_pid: self()})
     {:ok, _} = start_supervised({Scheduler, client: cli, init_interval: 1, set: "schedule"})
 
     assert_receive {:deschedule, "schedule"}
 
     :ok = stop_supervised(Scheduler)
-    :ok = stop_supervised(FakeClient)
+    :ok = stop_supervised(EchoClient)
   end
 
   describe "random_interval/1" do

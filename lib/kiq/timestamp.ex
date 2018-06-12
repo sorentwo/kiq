@@ -1,6 +1,8 @@
 defmodule Kiq.Timestamp do
   @moduledoc false
 
+  @type t :: float()
+
   @doc false
   @spec unix_now() :: float()
   def unix_now do

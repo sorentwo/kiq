@@ -3,6 +3,24 @@ Logger.configure_backend(:console, format: "$message\n")
 
 ExUnit.start()
 
+defmodule Kiq.EchoClient do
+  use GenServer
+
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts)
+  end
+
+  def init(opts) do
+    {:ok, opts}
+  end
+
+  def handle_call(message, _from, state) do
+    send state[:test_pid], message
+
+    {:reply, :ok, state}
+  end
+end
+
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 

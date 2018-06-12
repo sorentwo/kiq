@@ -10,7 +10,7 @@ defmodule Kiq.Reporter.Logger do
   @behaviour GenStage
 
   @doc false
-  @spec start_link(opts:: Keyword.t()) :: GenServer.on_start()
+  @spec start_link(opts :: Keyword.t()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 
@@ -18,8 +18,8 @@ defmodule Kiq.Reporter.Logger do
   end
 
   @impl GenStage
-  def init(_opts) do
-    {:consumer, :ok, []}
+  def init(opts) do
+    {:consumer, :ok, opts}
   end
 
   @impl GenStage
