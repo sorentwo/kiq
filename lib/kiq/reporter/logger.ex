@@ -52,7 +52,7 @@ defmodule Kiq.Reporter.Logger do
     })
   end
 
-  defp log_event({:failure, %Job{class: class, jid: jid, queue: queue}, error}) do
+  defp log_event({:failure, %Job{class: class, jid: jid, queue: queue}, error, _stack}) do
     log_formatted(%{
       worker: class,
       queue: queue,

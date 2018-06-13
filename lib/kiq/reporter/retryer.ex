@@ -41,7 +41,7 @@ defmodule Kiq.Reporter.Retryer do
     :ok = Client.remove_backup(client, job)
   end
 
-  defp retry_event({:failure, %Job{retry: true, retry_count: count} = job, error}, %State{
+  defp retry_event({:failure, %Job{retry: true, retry_count: count} = job, error, _stack}, %State{
          client: client,
          max_retries: max
        })

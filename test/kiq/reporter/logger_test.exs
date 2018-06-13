@@ -61,7 +61,7 @@ defmodule Kiq.Reporter.LoggerTest do
   end
 
   test "job failure is logged with exception information", %{job: job} do
-    message = log_event({:failure, job, %RuntimeError{}})
+    message = log_event({:failure, job, %RuntimeError{}, []})
 
     assert message =~ "Worker"
     assert message =~ "testing"
