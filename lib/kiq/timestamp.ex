@@ -4,6 +4,14 @@ defmodule Kiq.Timestamp do
   @type t :: float()
 
   @doc false
+  @spec date_now() :: binary()
+  def date_now do
+    DateTime.utc_now()
+    |> DateTime.to_date()
+    |> Date.to_string()
+  end
+
+  @doc false
   @spec unix_now() :: float()
   def unix_now do
     DateTime.utc_now()

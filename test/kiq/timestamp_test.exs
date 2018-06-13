@@ -3,6 +3,12 @@ defmodule Kiq.TimestampTest do
 
   alias Kiq.Timestamp
 
+  describe "date_now/0" do
+    test "the current date is returned" do
+      assert Timestamp.date_now() =~ ~r|\d{4}-\d{2}-\d{2}|
+    end
+  end
+
   describe "unix_now/0" do
     test "the current time is returned as a float" do
       assert to_string(Timestamp.unix_now()) =~ ~r|\d{9}\.\d+|

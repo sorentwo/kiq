@@ -3,23 +3,8 @@ defmodule Kiq.Reporter.LoggerTest do
 
   import ExUnit.CaptureLog
 
+  alias Kiq.FakeProducer
   alias Kiq.Reporter.Logger, as: Reporter
-
-  defmodule FakeProducer do
-    use GenStage
-
-    def start_link(opts) do
-      GenStage.start_link(__MODULE__, opts)
-    end
-
-    def init(events: events) do
-      {:producer, events}
-    end
-
-    def handle_demand(_demand, events) do
-      {:noreply, events, []}
-    end
-  end
 
   setup do
     Logger.flush()

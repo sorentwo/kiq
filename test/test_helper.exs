@@ -21,6 +21,22 @@ defmodule Kiq.EchoClient do
   end
 end
 
+defmodule Kiq.FakeProducer do
+  use GenStage
+
+  def start_link(opts) do
+    GenStage.start_link(__MODULE__, opts)
+  end
+
+  def init(events: events) do
+    {:producer, events}
+  end
+
+  def handle_demand(_demand, events) do
+    {:noreply, events, []}
+  end
+end
+
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 

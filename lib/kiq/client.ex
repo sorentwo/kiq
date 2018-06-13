@@ -8,6 +8,7 @@ defmodule Kiq.Client do
   @type client :: GenServer.server()
   @type queue :: binary() | atom()
   @type set :: binary() | atom()
+  @type stat_report :: [success: integer(), failure: integer()]
 
   @retry_set "retry"
   @schedule_set "schedule"
@@ -59,7 +60,7 @@ defmodule Kiq.Client do
     GenServer.call(client, {:resurrect, queue})
   end
 
-  # Introspection
+  ## Introspection
 
   @doc false
   @spec queue_size(client(), queue()) :: pos_integer()
@@ -73,7 +74,7 @@ defmodule Kiq.Client do
     GenServer.call(client, {:set_size, set})
   end
 
-  # Clearing & Removal
+  ## Clearing & Removal
 
   @doc false
   @spec clear_queue(client(), queue()) :: :ok
@@ -91,6 +92,14 @@ defmodule Kiq.Client do
   @spec remove_backup(client(), Job.t()) :: :ok
   def remove_backup(client, %Job{queue: queue} = job) when is_binary(queue) do
     GenServer.call(client, {:remove_backup, job})
+  end
+
+  ## Stats
+
+  @doc false
+  @spec record_stats(client(), stat_report()) :: :ok
+  def record_stats(client, stats) when is_list(stats) do
+    GenServer.call(client, {:record_stats, stats})
   end
 
   # Server
@@ -179,6 +188,25 @@ defmodule Kiq.Client do
 
   def handle_call({:remove_backup, job}, _from, %State{conn: conn} = state) do
     {:ok, _result} = Redix.command(conn, ["LREM", backup_name(job.queue), "0", Job.encode(job)])
+
+    {:reply, :ok, state}
+  end
+
+  ## Stats
+
+  def handle_call({:record_stats, stats}, _from, %State{conn: conn} = state) do
+    date = Timestamp.date_now()
+    processed = Keyword.fetch!(stats, :success)
+    failed = Keyword.fetch!(stats, :failure)
+
+    commands = [
+      ["INCRBY", "stat:processed", processed],
+      ["INCRBY", "stat:processed:#{date}", processed],
+      ["INCRBY", "stat:failed", failed],
+      ["INCRBY", "stat:failed:#{date}", failed]
+    ]
+
+    {:ok, _result} = Redix.pipeline(conn, commands)
 
     {:reply, :ok, state}
   end
