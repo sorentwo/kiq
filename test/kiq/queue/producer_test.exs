@@ -1,6 +1,7 @@
 defmodule Kiq.Queue.ProducerTest do
   use Kiq.Case, async: true
 
+  alias Kiq.EchoConsumer, as: Consumer
   alias Kiq.Queue.Producer
 
   defmodule FakeClient do
@@ -26,38 +27,18 @@ defmodule Kiq.Queue.ProducerTest do
     end
   end
 
-  defmodule FakeConsumer do
-    use GenStage
-
-    def start_link(opts) do
-      GenStage.start_link(__MODULE__, opts)
-    end
-
-    def init(opts) do
-      {:consumer, opts}
-    end
-
-    def handle_events(events, _from, state) do
-      for event <- events, do: send state[:test_pid], {:job, event}
-
-      {:noreply, [], state}
-    end
-  end
-
   test "jobs are dispatched from the queue when demand is sent" do
     [job_a, job_b, job_c] = jobs = [job(), job(), job()]
 
     {:ok, pid} = start_supervised({FakeClient, jobs: jobs})
     {:ok, pro} = start_supervised({Producer, client: pid, queue: "special"})
-    {:ok, con} = start_supervised({FakeConsumer, test_pid: self()})
+    {:ok, _cn} = start_supervised({Consumer, subscribe_to: [{pro, max_demand: 2}], test_pid: self()})
 
-    GenStage.sync_subscribe(con, to: pro, max_demand: 2)
+    assert_receive ^job_a
+    assert_receive ^job_b
+    assert_receive ^job_c
 
-    assert_receive {:job, ^job_a}
-    assert_receive {:job, ^job_b}
-    assert_receive {:job, ^job_c}
-
-    :ok = stop_supervised(FakeConsumer)
+    :ok = stop_supervised(Consumer)
     :ok = stop_supervised(Producer)
     :ok = stop_supervised(FakeClient)
   end

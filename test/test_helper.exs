@@ -21,6 +21,26 @@ defmodule Kiq.EchoClient do
   end
 end
 
+defmodule Kiq.EchoConsumer do
+  use GenStage
+
+  def start_link(opts) do
+    GenStage.start_link(__MODULE__, opts)
+  end
+
+  def init(opts) do
+    {args, opts} = Keyword.split(opts, [:test_pid])
+
+    {:consumer, args, opts}
+  end
+
+  def handle_events(events, _from, [test_pid: test_pid] = state) do
+    for event <- events, do: send test_pid, event
+
+    {:noreply, [], state}
+  end
+end
+
 defmodule Kiq.FakeProducer do
   use GenStage
 
