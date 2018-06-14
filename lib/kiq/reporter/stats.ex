@@ -76,6 +76,10 @@ defmodule Kiq.Reporter.Stats do
     state
   end
 
+  defp process_enqueued(%State{failure_count: 0, success_count: 0} = state) do
+    state
+  end
+
   defp process_enqueued(%State{client: client} = state) do
     :ok = Client.record_stats(client, failure: state.failure_count, success: state.success_count)
 
