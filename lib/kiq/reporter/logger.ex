@@ -7,8 +7,6 @@ defmodule Kiq.Reporter.Logger do
 
   alias Kiq.Job
 
-  @behaviour GenStage
-
   @doc false
   @spec start_link(opts :: Keyword.t()) :: GenServer.on_start()
   def start_link(opts) do

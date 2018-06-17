@@ -26,15 +26,17 @@ defmodule Kiq.Queue.SupervisorTest do
 
   describe "start_link/1" do
     test "producer and consumer children are managed for the queue" do
+      opts = [reporter: Kiq.Rep, queue: "super", limit: 10]
+
       {:ok, pid} = start_supervised({FakeClient, []})
-      {:ok, sup} = start_supervised({QueueSupervisor, client: pid, queue: "super", limit: 10})
+      {:ok, sup} = start_supervised({QueueSupervisor, Keyword.put(opts, :client, pid)})
 
       [consumer, producer] = Supervisor.which_children(sup)
 
       assert {Kiq.Queue.Consumer, _pid, :supervisor, _} = consumer
       assert {Kiq.Queue.Producer, _pid, :worker, _} = producer
-      assert Process.whereis(:"Elixir.Kiq.super.Prod")
-      assert Process.whereis(:"Elixir.Kiq.super.Cons")
+      assert Process.whereis(:"Elixir.Kiq.Super.Producer")
+      assert Process.whereis(:"Elixir.Kiq.Super.Consumer")
 
       :ok = stop_supervised(FakeClient)
       :ok = stop_supervised(QueueSupervisor)

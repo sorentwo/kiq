@@ -3,8 +3,6 @@ defmodule Kiq.Queue.Producer do
 
   use GenStage
 
-  @behaviour GenStage
-
   alias Kiq.Client
 
   defmodule State do

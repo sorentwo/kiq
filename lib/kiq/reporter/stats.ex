@@ -5,8 +5,6 @@ defmodule Kiq.Reporter.Stats do
 
   alias Kiq.Client
 
-  @behaviour GenStage
-
   defmodule State do
     @moduledoc false
 

@@ -17,13 +17,13 @@ defmodule Kiq.Reporter.Supervisor do
   @impl Supervisor
   def init(opts) do
     client = Keyword.get(opts, :client, Client)
-    producer_name = Keyword.get(opts, :producer_name, Producer)
+    reporter_name = Keyword.get(opts, :reporter_name, Reporter)
 
     children = [
-      {Producer, name: producer_name},
-      {Logger, subscribe_to: [producer_name]},
-      {Retryer, client: client, subscribe_to: [producer_name]},
-      {Stats, client: client, subscribe_to: [producer_name]}
+      {Producer, name: reporter_name},
+      {Logger, subscribe_to: [reporter_name]},
+      {Retryer, client: client, subscribe_to: [reporter_name]},
+      {Stats, client: client, subscribe_to: [reporter_name]}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

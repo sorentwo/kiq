@@ -14,8 +14,8 @@ defmodule Kiq.Queue.Consumer do
   end
 
   @impl ConsumerSupervisor
-  def init(client: client, subscribe_to: subscribe_to) do
-    children = [{Runner, [client: client]}]
+  def init(client: _, reporter: reporter, subscribe_to: subscribe_to) do
+    children = [{Runner, reporter: reporter}]
 
     ConsumerSupervisor.init(children, strategy: :one_for_one, subscribe_to: subscribe_to)
   end

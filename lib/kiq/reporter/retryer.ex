@@ -5,8 +5,6 @@ defmodule Kiq.Reporter.Retryer do
 
   alias Kiq.{Client, Job, Timestamp}
 
-  @behaviour GenStage
-
   defmodule State do
     @moduledoc false
 

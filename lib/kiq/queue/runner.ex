@@ -2,7 +2,12 @@ defmodule Kiq.Queue.Runner do
   @moduledoc false
 
   alias Kiq.Job
-  # alias Kiq.Reporter.Supervisor, as: Reporter
+  alias Kiq.Reporter.Producer, as: Reporter
+
+  @type meta :: [timing: pos_integer()]
+  @type success :: {:ok, Job.t(), meta()}
+  @type failure :: {:error, Job.t(), Exception.t(), list()}
+  @type options :: [reporter: identifier()]
 
   @doc false
   @spec child_spec(args :: Keyword.t()) :: Supervisor.child_spec()
@@ -16,33 +21,34 @@ defmodule Kiq.Queue.Runner do
   end
 
   @doc false
-  @spec start_link(opts :: Keyword.t(), job_input :: binary()) :: {:ok, pid()}
-  def start_link(opts, job_input) when is_binary(job_input) do
-    Task.start_link(__MODULE__, :run, [opts, job_input])
+  @spec start_link(opts :: options(), job_input :: binary()) :: {:ok, pid()}
+  def start_link([reporter: reporter], job_input) when is_binary(job_input) do
+    Task.start_link(__MODULE__, :run, [reporter, job_input])
   end
 
   @doc false
-  @spec run(opts :: Keyword.t(), job_input :: binary()) ::
-          {:ok, Job.t(), Keyword.t()} | {:error, Job.t(), Exception.t()}
-  def run(_opts, job_input) do
+  @spec run(reporter :: identifier(), job_input :: binary()) :: success() | failure()
+  def run(reporter, job_input) do
     %Job{class: class, args: args} = job = Job.decode(job_input)
 
     try do
-      # Reporter.started(job)
+      Reporter.started(reporter, job)
 
       {timing, _return} =
         class
         |> String.to_existing_atom()
         |> :timer.tc(:perform, [args])
 
-      # Reporter.success(job, timing: timing)
+      Reporter.success(reporter, job, timing: timing)
 
       {:ok, job, timing: timing}
     rescue
       exception ->
-        # Reporter.failure(job, exception)
+        stacktrace = System.stacktrace()
 
-        {:error, job, exception}
+        Reporter.failure(reporter, job, exception, stacktrace)
+
+        {:error, job, exception, stacktrace}
     end
   end
 end

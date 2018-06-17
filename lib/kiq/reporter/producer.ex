@@ -5,8 +5,6 @@ defmodule Kiq.Reporter.Producer do
 
   alias Kiq.Job
 
-  @behaviour GenStage
-
   @type server :: GenServer.server()
 
   defmodule State do

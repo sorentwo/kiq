@@ -5,8 +5,10 @@ defmodule Kiq.Queue.Supervisor do
 
   alias Kiq.Queue.{Consumer, Producer}
 
+  @type options :: [client: module(), queue: binary(), limit: pos_integer(), name: identifier()]
+
   @doc false
-  @spec start_link(opts :: Keyword.t()) :: Supervisor.on_start()
+  @spec start_link(opts :: options()) :: Supervisor.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 
@@ -14,14 +16,19 @@ defmodule Kiq.Queue.Supervisor do
   end
 
   @impl Supervisor
-  def init(client: client, queue: queue, limit: limit) do
-    producer_name = Module.concat([Kiq, queue, Prod])
-    consumer_name = Module.concat([Kiq, queue, Cons])
+  def init(client: client, reporter: reporter, queue: queue, limit: limit) do
+    prod_name = Module.concat(["Kiq", String.capitalize(queue), "Producer"])
+    cons_name = Module.concat(["Kiq", String.capitalize(queue), "Consumer"])
+    prod_opts = [client: client, queue: queue, name: prod_name]
 
-    children = [
-      {Producer, [client: client, queue: queue, name: producer_name]},
-      {Consumer, [client: client, subscribe_to: [{producer_name, max_demand: limit}], name: consumer_name]}
+    cons_opts = [
+      client: client,
+      reporter: reporter,
+      subscribe_to: [{prod_name, max_demand: limit}],
+      name: cons_name
     ]
+
+    children = [{Producer, prod_opts}, {Consumer, cons_opts}]
 
     Supervisor.init(children, strategy: :rest_for_one)
   end
