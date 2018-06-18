@@ -20,7 +20,7 @@ defmodule Kiq.Supervisor do
   end
 
   @impl Supervisor
-  def init(config) do
+  def init(%Config{} = config) do
     children = [
       {Client, Keyword.put(config.client_opts, :name, config.client)},
       {ReporterSupervisor, client: config.client, reporter_name: config.reporter}

@@ -5,9 +5,8 @@ defmodule Kiq.Queue.Scheduler do
 
   alias Kiq.Client
 
-  @type opts :: [
+  @type options :: [
           client: identifier(),
-          init_interval: pos_integer(),
           name: any(),
           poll_interval: pos_integer(),
           set: binary()
@@ -17,11 +16,11 @@ defmodule Kiq.Queue.Scheduler do
     @moduledoc false
 
     @enforce_keys [:client, :set]
-    defstruct client: nil, init_interval: 10_000, poll_interval: 1_000, set: nil
+    defstruct client: nil, poll_interval: 1_000, set: nil
   end
 
   @doc false
-  @spec start_link(opts :: opts()) :: GenServer.on_start()
+  @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 
@@ -40,7 +39,7 @@ defmodule Kiq.Queue.Scheduler do
   def init(opts) do
     state = struct(State, opts)
 
-    schedule_poll(%{state | poll_interval: state.init_interval})
+    schedule_poll(state)
 
     {:ok, state}
   end

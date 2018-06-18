@@ -7,9 +7,11 @@ defmodule Kiq.Worker do
   enqueued with the `Kiq.Job`.
   """
 
-  alias Kiq.{Job, Timestamp}
+  alias Kiq.{Client, Job, Timestamp}
 
   @type args :: list(any())
+  @type opts :: [queue: binary(), retry: boolean()]
+  @type client :: GenServer.server()
   @type seconds :: pos_integer()
   @type on_enqueue() :: {:ok, Job.t()} | {:error, Exception.t()}
 
@@ -22,20 +24,16 @@ defmodule Kiq.Worker do
   @doc """
   Enqueues a job to be performed for the worker as soon as possible.
   """
-  @callback perform_async(args()) :: on_enqueue()
+  @callback perform_async(client(), args()) :: on_enqueue()
 
   @doc """
   Enqueues a job N seconds in the future. The job will be performed on or after
   that time, it isn't an exact guarantee.
   """
-  @callback perform_in(seconds(), args()) :: on_enqueue()
+  @callback perform_in(client(), seconds(), args()) :: on_enqueue()
 
   defmacro __using__(opts) do
-    opts =
-      opts
-      |> Keyword.take([:queue])
-      |> Enum.into(%{})
-      |> Macro.escape()
+    opts = Keyword.put_new(opts, :queue, "default")
 
     quote do
       alias Kiq.Worker
@@ -48,35 +46,37 @@ defmodule Kiq.Worker do
       end
 
       @impl Worker
-      def perform_async(args) when is_list(args) do
-        Worker.perform_async(__MODULE__, args, unquote(opts))
+      def perform_async(client, args) when is_list(args) do
+        Worker.perform_async(client, __MODULE__, args, unquote(opts))
       end
 
       @impl Worker
-      def perform_in(seconds, args) when is_integer(seconds) and is_list(args) do
-        Worker.perform_in(__MODULE__, seconds, args, unquote(opts))
+      def perform_in(client, seconds, args) when is_integer(seconds) and is_list(args) do
+        Worker.perform_in(client, __MODULE__, seconds, args, unquote(opts))
       end
 
-      defoverridable perform: 1, perform_async: 1, perform_in: 2
+      defoverridable perform: 1, perform_async: 2, perform_in: 3
     end
   end
 
   @doc false
-  @spec perform_async(module(), args(), map()) :: on_enqueue()
-  def perform_async(module, args, config) do
-    enqueue(%{class: module, args: args}, config)
+  @spec perform_async(client(), module(), args(), opts()) :: on_enqueue()
+  def perform_async(client, module, args, opts) do
+    enqueue(client, %{class: module, args: args}, opts)
   end
 
   @doc false
-  @spec perform_in(module(), seconds(), args(), map()) :: on_enqueue()
-  def perform_in(module, seconds, args, config) do
-    enqueue(%{class: module, args: args, at: Timestamp.unix_in(seconds)}, config)
+  @spec perform_in(client(), module(), seconds(), args(), opts()) :: on_enqueue()
+  def perform_in(client, module, seconds, args, opts) do
+    enqueue(client, %{class: module, args: args, at: Timestamp.unix_in(seconds)}, opts)
   end
 
-  defp enqueue(job_map, %{queue: queue}) do
-    job_map
-    |> Map.put(:queue, queue)
-    |> Job.new()
-    |> Kiq.enqueue()
+  defp enqueue(client, job_map, opts) do
+    job =
+      opts
+      |> Enum.into(job_map)
+      |> Job.new()
+
+    Client.enqueue(client, job)
   end
 end

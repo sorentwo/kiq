@@ -13,7 +13,7 @@ defmodule Kiq.Config do
           queues: list(queue_config())
         }
 
-  defstruct client: Kiq.Clent,
+  defstruct client: Kiq.Client,
             client_opts: [],
             reporter: Kiq.Reporter,
             schedulers: ~w(retry schedule),

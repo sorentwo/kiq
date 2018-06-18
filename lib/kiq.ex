@@ -4,6 +4,6 @@ defmodule Kiq do
   """
 
   def enqueue(job) do
-    {:ok, job}
+    Kiq.Client.enqueue(Kiq.Client, job)
   end
 end
