@@ -9,7 +9,10 @@ defmodule Kiq.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
+      dialyzer: [
+        plt_add_apps: [:ex_unit],
+        flags: [:error_handling, :race_conditions, :underspecs]
+      ]
     ]
   end
 
@@ -25,7 +28,7 @@ defmodule Kiq.MixProject do
       {:gen_stage, "~> 0.14"},
       {:redix, "~> 0.7"},
       {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
+      {:dialyxir, "1.0.0-rc.2", only: [:dev, :test], runtime: false}
     ]
   end
 
