@@ -20,6 +20,14 @@ defmodule Kiq.ClientTest do
     {:ok, client: client, redis: redis}
   end
 
+  describe "jobs/2" do
+    test "fetching all jobs in a queue", %{client: client} do
+      assert [] == Client.jobs(client, @queue)
+      assert {:ok, job} = Client.enqueue(client, job())
+      assert [job] == Client.jobs(client, @queue)
+    end
+  end
+
   describe "queue_size/2" do
     test "counting the number of jobs in the queue", %{client: client} do
       assert 0 == Client.queue_size(client, @queue)

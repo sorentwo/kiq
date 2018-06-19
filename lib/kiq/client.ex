@@ -28,6 +28,8 @@ defmodule Kiq.Client do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
+  ## Jobs
+
   @doc false
   @spec enqueue(client(), Job.t()) :: {:ok, Job.t()}
   def enqueue(client, %Job{retry: true, retry_count: count} = job) when count > 0 do
@@ -61,6 +63,12 @@ defmodule Kiq.Client do
   end
 
   ## Introspection
+
+  @doc false
+  @spec jobs(client(), queue()) :: list(Job.t())
+  def jobs(client, queue) when is_binary(queue) do
+    GenServer.call(client, {:jobs, queue})
+  end
 
   @doc false
   @spec queue_size(client(), queue()) :: pos_integer()
@@ -165,6 +173,14 @@ defmodule Kiq.Client do
   end
 
   ## Introspection
+
+  def handle_call({:jobs, queue}, _from, %State{conn: conn} = state) do
+    {:ok, results} = Redix.command(conn, ["LRANGE", queue_name(queue), 0, -1])
+
+    jobs = Enum.map(results, &Job.decode/1)
+
+    {:reply, jobs, state}
+  end
 
   def handle_call({:queue_size, queue}, _from, %State{conn: conn} = state) do
     {:ok, count} = Redix.command(conn, ["LLEN", queue_name(queue)])
