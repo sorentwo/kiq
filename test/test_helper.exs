@@ -7,9 +7,12 @@ defmodule Kiq.EchoClient do
   use GenServer
 
   def start_link(opts) do
-    opts = Keyword.put_new(opts, :test_pid, self())
+    {name, opts} =
+      opts
+      |> Keyword.put_new(:test_pid, self())
+      |> Keyword.pop(:name)
 
-    GenServer.start_link(__MODULE__, opts)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   def init(opts) do

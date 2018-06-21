@@ -23,7 +23,7 @@ defmodule Kiq.Supervisor do
   def init(%Config{} = config) do
     children = [
       {Client, Keyword.put(config.client_opts, :name, config.client)},
-      {ReporterSupervisor, client: config.client, reporter_name: config.reporter}
+      {ReporterSupervisor, config: config}
     ]
 
     schedulers = Enum.map(config.schedulers, &scheduler_spec(&1, config))
@@ -42,9 +42,7 @@ defmodule Kiq.Supervisor do
   defp queue_spec({queue, limit}, config) do
     queue = maybe_to_string(queue)
     name = Module.concat(["Kiq", "Queue", String.capitalize(queue)])
-    opts = [
-      client: config.client, reporter: config.reporter, queue: queue, limit: limit, name: name
-    ]
+    opts = [config: config, queue: queue, limit: limit, name: name]
 
     Supervisor.child_spec({QueueSupervisor, opts}, id: name)
   end

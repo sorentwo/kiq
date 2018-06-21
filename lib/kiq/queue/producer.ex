@@ -24,10 +24,11 @@ defmodule Kiq.Queue.Producer do
 
   @impl GenStage
   def init(opts) do
-    state = struct(State, opts)
-
-    schedule_poll(state)
-    schedule_resurrect(state)
+    state =
+      State
+      |> struct(opts)
+      |> schedule_poll()
+      |> schedule_resurrect()
 
     {:producer, state}
   end
@@ -37,12 +38,10 @@ defmodule Kiq.Queue.Producer do
     {:noreply, [], state}
   end
 
-  def handle_info(:poll, %State{client: client, demand: demand, queue: queue} = state) do
-    schedule_poll(state)
-
-    count = Client.queue_size(client, queue)
-
-    dispatch(%{state | demand: demand + count})
+  def handle_info(:poll, state) do
+    state
+    |> schedule_poll()
+    |> dispatch()
   end
 
   def handle_info(:resurrect, %State{client: client, queue: queue} = state) do
@@ -70,11 +69,15 @@ defmodule Kiq.Queue.Producer do
     trunc((interval / 2) + (interval * :rand.uniform()))
   end
 
-  defp schedule_poll(%State{poll_interval: interval}) do
+  defp schedule_poll(%State{poll_interval: interval} = state) do
     Process.send_after(self(), :poll, jitter(interval))
+
+    state
   end
 
-  defp schedule_resurrect(%State{poll_interval: interval}) do
+  defp schedule_resurrect(%State{poll_interval: interval} = state) do
     Process.send_after(self(), :resurrect, jitter(interval))
+
+    state
   end
 end

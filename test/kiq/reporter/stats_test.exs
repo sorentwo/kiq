@@ -1,7 +1,7 @@
 defmodule Kiq.Reporter.StatsTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{EchoClient, FakeProducer}
+  alias Kiq.{EchoClient, FakeProducer, Heartbeat}
   alias Kiq.Reporter.Stats, as: Reporter
 
   defp emit_event(event) do
@@ -18,6 +18,12 @@ defmodule Kiq.Reporter.StatsTest do
     :ok = stop_supervised(EchoClient)
   end
 
+  test "stats for in-process jobs are recorded" do
+    :ok = emit_event({:started, job()})
+
+    assert_receive {:record_heart, %Heartbeat{busy: 1}}
+  end
+
   test "stats for successful jobs are recorded" do
     :ok = emit_event({:success, job(), []})
 
@@ -28,5 +34,11 @@ defmodule Kiq.Reporter.StatsTest do
     :ok = emit_event({:failure, job(), %RuntimeError{}, []})
 
     assert_receive {:record_stats, failure: 1, success: 0}
+  end
+
+  test "stats for completed jobs are recorded" do
+    :ok = emit_event({:stopped, job()})
+
+    assert_receive {:record_heart, %Heartbeat{busy: 0}}
   end
 end

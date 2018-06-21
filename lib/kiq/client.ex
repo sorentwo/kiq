@@ -3,7 +3,7 @@ defmodule Kiq.Client do
 
   use GenServer
 
-  alias Kiq.{Job, Timestamp}
+  alias Kiq.{Heartbeat, Job, Timestamp}
 
   @type client :: GenServer.server()
   @type queue :: binary() | atom()
@@ -103,6 +103,12 @@ defmodule Kiq.Client do
   end
 
   ## Stats
+
+  @doc false
+  @spec record_heart(client(), Heartbeat.t()) :: :ok
+  def record_heart(client, %Heartbeat{} = heartbeat) do
+    GenServer.call(client, {:record_heart, heartbeat})
+  end
 
   @doc false
   @spec record_stats(client(), stat_report()) :: :ok
@@ -209,6 +215,31 @@ defmodule Kiq.Client do
   end
 
   ## Stats
+
+  def handle_call({:record_heart, heartbeat}, _from, %State{conn: conn} = state) do
+    %Heartbeat{busy: busy, identity: key, pid: pid, quiet: quiet, running: running} = heartbeat
+
+    wkey = "#{key}:workers"
+    beat = Timestamp.unix_now()
+    info = Heartbeat.encode(heartbeat)
+
+    worker_details = Enum.map(running, fn {_jid, job} ->
+      [pid, Jason.encode!(%{queue: job.queue, payload: Job.encode(job), run_at: beat})]
+    end)
+
+    commands = [
+      ["SADD", "processes", key],
+      ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
+      ["EXPIRE", key, 60],
+      ["DEL", wkey],
+      List.flatten(["HMSET", wkey, worker_details]),
+      ["EXPIRE", wkey, 60]
+    ]
+
+    {:ok, _result} = Redix.pipeline(conn, commands)
+
+    {:reply, :ok, state}
+  end
 
   def handle_call({:record_stats, stats}, _from, %State{conn: conn} = state) do
     date = Timestamp.date_now()

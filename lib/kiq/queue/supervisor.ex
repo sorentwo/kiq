@@ -3,9 +3,10 @@ defmodule Kiq.Queue.Supervisor do
 
   use Supervisor
 
+  alias Kiq.Config
   alias Kiq.Queue.{Consumer, Producer}
 
-  @type options :: [client: module(), queue: binary(), limit: pos_integer(), name: identifier()]
+  @type options :: [config: Config.t(), queue: binary(), limit: pos_integer(), name: identifier()]
 
   @doc false
   @spec start_link(opts :: options()) :: Supervisor.on_start()
@@ -16,14 +17,14 @@ defmodule Kiq.Queue.Supervisor do
   end
 
   @impl Supervisor
-  def init(client: client, reporter: reporter, queue: queue, limit: limit) do
+  def init(config: config, queue: queue, limit: limit) do
     prod_name = Module.concat(["Kiq", String.capitalize(queue), "Producer"])
     cons_name = Module.concat(["Kiq", String.capitalize(queue), "Consumer"])
-    prod_opts = [client: client, queue: queue, name: prod_name]
+    prod_opts = [client: config.client, queue: queue, name: prod_name]
 
     cons_opts = [
-      client: client,
-      reporter: reporter,
+      client: config.client,
+      reporter: config.reporter,
       subscribe_to: [{prod_name, max_demand: limit}],
       name: cons_name
     ]

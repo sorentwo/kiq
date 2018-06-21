@@ -1,14 +1,16 @@
 defmodule Kiq.Queue.SupervisorTest do
   use Kiq.Case, async: true
 
-  alias Kiq.FakeClient
+  alias Kiq.{Config, FakeClient}
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
 
   defmodule FakeClient do
     use GenServer
 
     def start_link(opts) do
-      GenServer.start_link(__MODULE__, opts)
+      {name, opts} = Keyword.pop(opts, :name)
+
+      GenServer.start_link(__MODULE__, opts, name: name)
     end
 
     def init(opts) do
@@ -26,10 +28,10 @@ defmodule Kiq.Queue.SupervisorTest do
 
   describe "start_link/1" do
     test "producer and consumer children are managed for the queue" do
-      opts = [reporter: Kiq.Rep, queue: "super", limit: 10]
+      conf = Config.new(client: Fake, reporter: Kiq.Rep)
 
-      {:ok, pid} = start_supervised({FakeClient, []})
-      {:ok, sup} = start_supervised({QueueSupervisor, Keyword.put(opts, :client, pid)})
+      {:ok, _cl} = start_supervised({FakeClient, name: Fake})
+      {:ok, sup} = start_supervised({QueueSupervisor, [config: conf, queue: "super", limit: 10]})
 
       [consumer, producer] = Supervisor.which_children(sup)
 

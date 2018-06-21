@@ -3,27 +3,27 @@ defmodule Kiq.Reporter.Supervisor do
 
   use Supervisor
 
-  alias Kiq.Client
+  alias Kiq.Config
   alias Kiq.Reporter.{Logger, Producer, Retryer, Stats}
 
-  @doc false
-  @spec start_link(opts :: Keyword.t()) :: Supervisor.on_start()
-  def start_link(opts) do
-    {name, opts} = Keyword.pop(opts, :name)
+  @type options :: [config: Config.t(), name: identifier()]
 
-    Supervisor.start_link(__MODULE__, opts, name: name)
+  @doc false
+  @spec start_link(opts :: options()) :: Supervisor.on_start()
+  def start_link(opts) do
+    name = Keyword.get(opts, :name, __MODULE__)
+    conf = Keyword.get(opts, :config, Config.new())
+
+    Supervisor.start_link(__MODULE__, conf, name: name)
   end
 
   @impl Supervisor
-  def init(opts) do
-    client = Keyword.get(opts, :client, Client)
-    reporter_name = Keyword.get(opts, :reporter_name, Reporter)
-
+  def init(%Config{client: client, queues: queues, reporter: reporter}) do
     children = [
-      {Producer, name: reporter_name},
-      {Logger, subscribe_to: [reporter_name]},
-      {Retryer, client: client, subscribe_to: [reporter_name]},
-      {Stats, client: client, subscribe_to: [reporter_name]}
+      {Producer, name: reporter},
+      {Logger, subscribe_to: [reporter]},
+      {Retryer, client: client, subscribe_to: [reporter]},
+      {Stats, client: client, queues: queues, subscribe_to: [reporter]}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

@@ -3,12 +3,21 @@ defmodule Kiq.Reporter.Stats do
 
   use GenStage
 
-  alias Kiq.Client
+  alias Kiq.{Client, Heartbeat}
+
+  @type options :: [
+          client: module(),
+          flush_interval: non_neg_integer(),
+          queues: list(),
+          name: identifier()
+        ]
 
   defmodule State do
     @moduledoc false
 
     defstruct client: nil,
+              heartbeat: nil,
+              queues: [],
               success_count: 0,
               failure_count: 0,
               flush_interval: 1_000
@@ -24,23 +33,24 @@ defmodule Kiq.Reporter.Stats do
 
   @impl GenStage
   def init(opts) do
-    {args, opts} = Keyword.split(opts, [:client, :flush_interval])
+    {args, opts} = Keyword.split(opts, [:client, :queues, :flush_interval])
 
     Process.flag(:trap_exit, true)
 
     state =
       State
-      |> struct(args)
+      |> struct!(args)
       |> schedule_flush()
 
-    {:consumer, state, opts}
+    {:consumer, %State{state | heartbeat: Heartbeat.new(queues: state.queues)}, opts}
   end
 
   @impl GenStage
   def handle_info(:flush, state) do
     state =
       state
-      |> process_enqueued()
+      |> record_heart()
+      |> record_stats()
       |> schedule_flush()
 
     {:noreply, [], state}
@@ -48,40 +58,54 @@ defmodule Kiq.Reporter.Stats do
 
   @impl GenStage
   def handle_events(events, _from, state) do
-    state = Enum.reduce(events, state, &record_event/2)
+    state = Enum.reduce(events, state, &process_event/2)
 
     {:noreply, [], state}
   end
 
   @impl GenStage
   def terminate(_reason, state) do
-    process_enqueued(state)
+    record_stats(state)
 
     :ok
   end
 
   # Helpers
 
-  defp record_event({:success, _job, _meta}, %State{success_count: count} = state) do
+  defp process_event({:started, job}, %State{heartbeat: heartbeat} = state) do
+    %State{state | heartbeat: Heartbeat.add_running(heartbeat, job)}
+  end
+
+  defp process_event({:success, _job, _meta}, %State{success_count: count} = state) do
     %State{state | success_count: count + 1}
   end
 
-  defp record_event({:failure, _job, _error, _stack}, %State{failure_count: count} = state) do
+  defp process_event({:failure, _job, _error, _stack}, %State{failure_count: count} = state) do
     %State{state | failure_count: count + 1}
   end
 
-  defp record_event(_event, state) do
+  defp process_event({:stopped, job}, %State{heartbeat: heartbeat} = state) do
+    %State{state | heartbeat: Heartbeat.rem_running(heartbeat, job)}
+  end
+
+  defp process_event(_event, state) do
     state
   end
 
-  defp process_enqueued(%State{failure_count: 0, success_count: 0} = state) do
+  defp record_heart(%State{client: client, heartbeat: heartbeat} = state) do
+    :ok = Client.record_heart(client, heartbeat)
+
     state
   end
 
-  defp process_enqueued(%State{client: client} = state) do
+  defp record_stats(%State{failure_count: 0, success_count: 0} = state) do
+    state
+  end
+
+  defp record_stats(%State{client: client} = state) do
     :ok = Client.record_stats(client, failure: state.failure_count, success: state.success_count)
 
-    %{state | failure_count: 0, success_count: 0}
+    %State{state | failure_count: 0, success_count: 0}
   end
 
   defp schedule_flush(%State{flush_interval: interval} = state) do

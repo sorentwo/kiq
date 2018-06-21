@@ -1,7 +1,7 @@
 defmodule Kiq.ClientTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{Client, Job, Timestamp}
+  alias Kiq.{Client, Heartbeat, Job, Timestamp}
 
   @queue "testing"
   @queue_list "queue:#{@queue}"
@@ -125,6 +125,24 @@ defmodule Kiq.ClientTest do
 
       assert :ok = Client.remove_backup(client, job_b)
       assert {:ok, 0} = Redix.command(redis, ["LLEN", @backup_list])
+    end
+  end
+
+  describe "record_heart/2" do
+    test "heartbeat process information is updated", %{client: client, redis: redis} do
+      running = %{"jid1" => job(), "jid2" => job()}
+
+      %Heartbeat{identity: identity} = heartbeat = Heartbeat.new(running: running)
+
+      assert :ok = Client.record_heart(client, heartbeat)
+      assert {:ok, 1} = Redix.command(redis, ["SISMEMBER", "processes", identity])
+      assert {:ok, info} = Redix.command(redis, ["HGET", identity, "info"])
+      assert {:ok, _beat} = Redix.command(redis, ["HGET", identity, "beat"])
+      assert {:ok, "2"} = Redix.command(redis, ["HGET", identity, "busy"])
+      assert {:ok, "false"} = Redix.command(redis, ["HGET", identity, "quiet"])
+      assert {:ok, 1} = Redix.command(redis, ["EXISTS", "#{identity}:workers"])
+
+      assert %{concurrency: 0} = Jason.decode!(info, keys: :atoms)
     end
   end
 
