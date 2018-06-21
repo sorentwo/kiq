@@ -217,22 +217,18 @@ defmodule Kiq.Client do
   ## Stats
 
   def handle_call({:record_heart, heartbeat}, _from, %State{conn: conn} = state) do
-    %Heartbeat{busy: busy, identity: key, pid: pid, quiet: quiet, running: running} = heartbeat
+    %Heartbeat{busy: busy, identity: key, quiet: quiet, running: running} = heartbeat
 
     wkey = "#{key}:workers"
     beat = Timestamp.unix_now()
     info = Heartbeat.encode(heartbeat)
-
-    worker_details = Enum.map(running, fn {_jid, job} ->
-      [pid, Jason.encode!(%{queue: job.queue, payload: Job.encode(job), run_at: beat})]
-    end)
 
     commands = [
       ["SADD", "processes", key],
       ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
       ["EXPIRE", key, 60],
       ["DEL", wkey],
-      List.flatten(["HMSET", wkey, worker_details]),
+      ["HMSET", wkey | Enum.map(running, &worker_detail/1)],
       ["EXPIRE", wkey, 60]
     ]
 
@@ -273,5 +269,12 @@ defmodule Kiq.Client do
     {:ok, _result} = Redix.pipeline(conn, commands)
 
     {:ok, job}
+  end
+
+  defp worker_detail({_jid, %Job{pid: pid, queue: queue} = job}) do
+    job_key = to_string(:io_lib.format("~p", [pid]))
+    details = %{queue: queue, payload: Job.encode(job), run_at: Timestamp.unix_now()}
+
+    [job_key, Jason.encode!(details)]
   end
 end

@@ -1,7 +1,7 @@
 defmodule Kiq.Queue.RunnerTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{Job, Worker}
+  alias Kiq.Worker
   alias Kiq.Queue.Runner
 
   defmodule MyWorker do
@@ -30,15 +30,17 @@ defmodule Kiq.Queue.RunnerTest do
 
   describe "run/2" do
     test "successful jobs return timing information", %{reporter: reporter} do
-      assert {:ok, %Job{}, meta} = Runner.run(reporter, encoded_job(class: MyWorker, args: [1, 2]))
+      assert {:ok, job, meta} = Runner.run(reporter, encoded_job(class: MyWorker, args: [1, 2]))
 
+      assert is_pid(job.pid)
       assert is_integer(meta[:timing])
     end
 
     test "failed jobs return exception information", %{reporter: reporter} do
-      assert {:error, %Job{}, error, stacktrace} =
+      assert {:error, job, error, stacktrace} =
                Runner.run(reporter, encoded_job(class: MyWorker, args: [1]))
 
+      assert is_pid(job.pid)
       assert Exception.exception?(error)
       assert is_list(stacktrace)
     end

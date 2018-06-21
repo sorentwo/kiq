@@ -6,6 +6,7 @@ defmodule Kiq.Job do
   fields:
 
   * `jid` - A 12 byte random number as a 24 character hex encoded string
+  * `pid` — Process id of the worker running the job, defaults to the calling process
   * `class` - The worker class which is responsible for executing the job
   * `args` - The arguments passed which should be passed to the worker
   * `queue` - The queue where a job should be enqueued, defaults to "default"
@@ -26,23 +27,25 @@ defmodule Kiq.Job do
   alias Kiq.Timestamp
 
   @type t :: %__MODULE__{
-          jid: binary,
-          class: binary,
+          jid: binary(),
+          pid: pid(),
+          class: binary(),
           args: list(any),
-          queue: binary,
-          retry: boolean,
-          retry_count: pos_integer,
+          queue: binary(),
+          retry: boolean(),
+          retry_count: non_neg_integer(),
           at: Timestamp.t(),
           created_at: Timestamp.t(),
           enqueued_at: Timestamp.t(),
           failed_at: Timestamp.t(),
           retried_at: Timestamp.t(),
-          error_message: binary,
-          error_class: binary
+          error_message: binary(),
+          error_class: binary()
         }
 
   @enforce_keys ~w(jid class)a
   defstruct jid: nil,
+            pid: nil,
             class: nil,
             args: [],
             queue: "default",

@@ -29,15 +29,18 @@ defmodule Kiq.Queue.Runner do
   @doc false
   @spec run(reporter :: identifier(), job_input :: binary()) :: success() | failure()
   def run(reporter, job_input) do
-    %Job{class: class, args: args} = job = Job.decode(job_input)
+    job =
+      job_input
+      |> Job.decode()
+      |> Map.replace!(:pid, self())
 
     try do
       Reporter.started(reporter, job)
 
       {timing, _return} =
-        class
+        job.class
         |> String.to_existing_atom()
-        |> :timer.tc(:perform, [args])
+        |> :timer.tc(:perform, [job.args])
 
       Reporter.success(reporter, job, timing: timing)
 
