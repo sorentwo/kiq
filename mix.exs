@@ -28,7 +28,7 @@ defmodule Kiq.MixProject do
       {:gen_stage, "~> 0.14"},
       {:redix, "~> 0.7"},
       {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
-      {:dialyxir, "1.0.0-rc.2", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
     ]
   end
 
