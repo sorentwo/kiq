@@ -40,6 +40,12 @@ defmodule Kiq.Reporter.Producer do
     GenStage.call(server, {:notify, {:failure, job, error, stacktrace}})
   end
 
+  @doc false
+  @spec stopped(server(), Job.t()) :: :ok
+  def stopped(server, %Job{} = job) do
+    GenStage.call(server, {:notify, {:stopped, job}})
+  end
+
   # Server
 
   @impl GenStage

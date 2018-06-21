@@ -49,6 +49,8 @@ defmodule Kiq.Queue.Runner do
         Reporter.failure(reporter, job, exception, stacktrace)
 
         {:error, job, exception, stacktrace}
+    after
+      Reporter.stopped(reporter, job)
     end
   end
 end

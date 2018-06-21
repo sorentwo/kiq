@@ -35,10 +35,6 @@ defmodule Kiq.Reporter.Retryer do
 
   # Helpers
 
-  defp retry_event({:success, %Job{} = job, _meta}, %State{client: client}) do
-    :ok = Client.remove_backup(client, job)
-  end
-
   defp retry_event({:failure, %Job{retry: true, retry_count: count} = job, error, _stack}, %State{
          client: client,
          max_retries: max
@@ -54,6 +50,10 @@ defmodule Kiq.Reporter.Retryer do
       |> Map.replace!(:error_message, Exception.message(error))
 
     Client.enqueue(client, job)
+  end
+
+  defp retry_event({:stopped, %Job{} = job}, %State{client: client}) do
+    :ok = Client.remove_backup(client, job)
   end
 
   defp retry_event(_event, _state) do

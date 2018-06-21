@@ -14,10 +14,12 @@ defmodule Kiq.Reporter.ProducerTest do
     assert :ok = Producer.started(pro, job_a)
     assert :ok = Producer.success(pro, job_a, [timing: 100])
     assert :ok = Producer.failure(pro, job_b, %RuntimeError{}, [])
+    assert :ok = Producer.stopped(pro, job_a)
 
     assert_receive {:started, ^job_a}
     assert_receive {:success, ^job_a, [timing: 100]}
     assert_receive {:failure, ^job_b, %RuntimeError{}, []}
+    assert_receive {:stopped, ^job_a}
 
     :ok = stop_supervised(Consumer)
     :ok = stop_supervised(Producer)

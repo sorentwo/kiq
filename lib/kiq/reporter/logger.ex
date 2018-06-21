@@ -60,6 +60,10 @@ defmodule Kiq.Reporter.Logger do
     })
   end
 
+  defp log_event(_event) do
+    :ok
+  end
+
   defp log_formatted(payload) do
     Logger.info(fn -> Jason.encode!(payload) end)
   end

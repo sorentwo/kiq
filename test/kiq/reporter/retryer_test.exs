@@ -22,10 +22,10 @@ defmodule Kiq.Reporter.RetryerTest do
     assert :ok = emit_event({:started, job()})
   end
 
-  test "successful jobs are pruned from the backup queue" do
+  test "stopped jobs are pruned from the backup queue" do
     job = job()
 
-    :ok = emit_event({:success, job, []})
+    :ok = emit_event({:stopped, job})
 
     assert_receive {:remove_backup, ^job}
   end
