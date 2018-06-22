@@ -1,0 +1,22 @@
+language: elixir
+sudo: false
+elixir:
+  - 1.6.6
+otp_release:
+  - 20.2
+  - 21.0
+env:
+  - MIX_ENV=test
+before_script:
+  - mix compile
+  - travis_wait mix dialyzer --plt
+script:
+  - mix credo
+  - mix dialyzer
+  - mix test
+services:
+  - redis-server
+cache:
+  directories:
+    - ~/.mix
+    - ~/.hex

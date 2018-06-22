@@ -8,7 +8,6 @@ defmodule Kiq.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases(),
       dialyzer: [
         plt_add_apps: [:ex_unit],
         flags: [:error_handling, :race_conditions, :underspecs]
@@ -29,12 +28,6 @@ defmodule Kiq.MixProject do
       {:redix, "~> 0.7"},
       {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
-    ]
-  end
-
-  defp aliases do
-    [
-      ci: ["credo", "dialyzer", "test"]
     ]
   end
 end
