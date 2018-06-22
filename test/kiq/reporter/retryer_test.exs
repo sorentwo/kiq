@@ -40,10 +40,9 @@ defmodule Kiq.Reporter.RetryerTest do
         assert job.retry_count == 1
         assert job.error_class == "RuntimeError"
         assert job.error_message == "bad stuff happened"
-
-      after
-        1_000 ->
-          flunk "No :retry message was ever received"
+    after
+      1_000 ->
+        flunk("No :retry message was ever received")
     end
   end
 

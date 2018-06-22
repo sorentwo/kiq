@@ -66,7 +66,7 @@ defmodule Kiq.Queue.Producer do
   end
 
   defp jitter(interval) do
-    trunc((interval / 2) + (interval * :rand.uniform()))
+    trunc(interval / 2 + interval * :rand.uniform())
   end
 
   defp schedule_poll(%State{poll_interval: interval} = state) do

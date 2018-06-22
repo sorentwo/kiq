@@ -19,7 +19,7 @@ defmodule Kiq.Queue.SchedulerTest do
       base_average = 1000
 
       intervals =
-        (fn -> Scheduler.random_interval(base_average) end)
+        fn -> Scheduler.random_interval(base_average) end
         |> Stream.repeatedly()
         |> Enum.take(100)
 

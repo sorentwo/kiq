@@ -20,7 +20,7 @@ defmodule Kiq.EchoClient do
   end
 
   def handle_call(message, _from, state) do
-    send state[:test_pid], message
+    send(state[:test_pid], message)
 
     {:reply, :ok, state}
   end
@@ -30,6 +30,8 @@ defmodule Kiq.EchoConsumer do
   use GenStage
 
   def start_link(opts) do
+    opts = Keyword.put_new(opts, :test_pid, self())
+
     GenStage.start_link(__MODULE__, opts)
   end
 
@@ -40,7 +42,7 @@ defmodule Kiq.EchoConsumer do
   end
 
   def handle_events(events, _from, [test_pid: test_pid] = state) do
-    for event <- events, do: send test_pid, event
+    for event <- events, do: send(test_pid, event)
 
     {:noreply, [], state}
   end

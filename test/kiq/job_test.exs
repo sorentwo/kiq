@@ -1,5 +1,24 @@
 defmodule Kiq.JobTest do
-  use ExUnit.Case, async: true
+  use Kiq.Case, async: true
 
-  doctest Kiq.Job
+  alias Kiq.Job
+
+  doctest Job
+
+  describe "encode/1" do
+    test "transient and nil values are omitted" do
+      decoded =
+        [pid: self(), args: [1, 2], queue: "default"]
+        |> job()
+        |> Job.encode()
+        |> Jason.decode!(keys: :atoms)
+
+      assert %{queue: "default", args: [1, 2]} = decoded
+
+      assert decoded[:jid]
+      assert decoded[:class]
+      refute decoded[:pid]
+      refute decoded[:failed_at]
+    end
+  end
 end

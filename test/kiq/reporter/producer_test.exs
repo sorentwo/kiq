@@ -12,7 +12,7 @@ defmodule Kiq.Reporter.ProducerTest do
     job_b = job()
 
     assert :ok = Producer.started(pro, job_a)
-    assert :ok = Producer.success(pro, job_a, [timing: 100])
+    assert :ok = Producer.success(pro, job_a, timing: 100)
     assert :ok = Producer.failure(pro, job_b, %RuntimeError{}, [])
     assert :ok = Producer.stopped(pro, job_a)
 

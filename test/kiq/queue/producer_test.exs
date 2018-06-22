@@ -32,7 +32,9 @@ defmodule Kiq.Queue.ProducerTest do
 
     {:ok, pid} = start_supervised({FakeClient, jobs: jobs})
     {:ok, pro} = start_supervised({Producer, client: pid, queue: "special"})
-    {:ok, _cn} = start_supervised({Consumer, subscribe_to: [{pro, max_demand: 2}], test_pid: self()})
+
+    {:ok, _cn} =
+      start_supervised({Consumer, subscribe_to: [{pro, max_demand: 2}], test_pid: self()})
 
     assert_receive ^job_a
     assert_receive ^job_b

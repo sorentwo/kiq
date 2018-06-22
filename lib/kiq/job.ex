@@ -95,6 +95,7 @@ defmodule Kiq.Job do
   def encode(%__MODULE__{} = job) do
     job
     |> Map.from_struct()
+    |> Map.drop([:pid])
     |> Enum.reject(fn {_key, val} -> is_nil(val) end)
     |> Enum.into(%{})
     |> Jason.encode!()

@@ -19,7 +19,6 @@ defmodule Kiq.HeartbeatTest do
       System.put_env("DYNO", "worker-123")
 
       assert %Heartbeat{hostname: "worker-123"} = Heartbeat.new(%{queues: []})
-
     after
       System.delete_env("DYNO")
     end

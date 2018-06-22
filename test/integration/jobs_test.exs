@@ -24,27 +24,33 @@ defmodule Kiq.Integration.JobsTest do
   end
 
   test "enqueuing and executing jobs successfully" do
-    logged = capture_log([colors: [enabled: false]], fn ->
-      for index <- 1..5, do: IntegrationWorker.perform_async(Kiq.Client, [index])
+    logged =
+      capture_log([colors: [enabled: false]], fn ->
+        for index <- 1..5, do: IntegrationWorker.perform_async(Kiq.Client, [index])
 
-      assert_values([1, 2, 3, 4, 5])
-    end)
+        assert_values([1, 2, 3, 4, 5])
+      end)
 
     assert logged =~ ~s("status":"started")
     assert logged =~ ~s("status":"success")
     refute logged =~ ~s("status":"failure")
+
+    :ok = stop_supervised(Kiq.Supervisor)
   end
 
   test "scheduling and executing jobs successfully" do
-    logged = capture_log([colors: [enabled: false]], fn ->
-      for index <- 1..5, do: IntegrationWorker.perform_in(Kiq.Client, 1, [index])
+    logged =
+      capture_log([colors: [enabled: false]], fn ->
+        for index <- 1..5, do: IntegrationWorker.perform_in(Kiq.Client, 1, [index])
 
-      assert_values([1, 2, 3, 4, 5], retry: 50)
-    end)
+        assert_values([1, 2, 3, 4, 5], retry: 50)
+      end)
 
     assert logged =~ ~s("status":"started")
     assert logged =~ ~s("status":"success")
     refute logged =~ ~s("status":"failure")
+
+    :ok = stop_supervised(Kiq.Supervisor)
   end
 
   defp assert_values(values, opts \\ []) when is_list(opts) do
@@ -55,7 +61,7 @@ defmodule Kiq.Integration.JobsTest do
   end
 
   defp assert_values(_values, count, count, _sleep) do
-    flunk "jobs were never processed"
+    flunk("jobs were never processed")
   end
 
   defp assert_values(values, count, retry, sleep) do
