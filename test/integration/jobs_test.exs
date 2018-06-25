@@ -54,8 +54,8 @@ defmodule Kiq.Integration.JobsTest do
   end
 
   defp assert_values(values, opts \\ []) when is_list(opts) do
-    retry = Keyword.get(opts, :retry, 20)
-    sleep = Keyword.get(opts, :sleep, 100)
+    retry = Keyword.get(opts, :retry, 10)
+    sleep = Keyword.get(opts, :sleep, 200)
 
     assert_values(values, 0, retry, sleep)
   end

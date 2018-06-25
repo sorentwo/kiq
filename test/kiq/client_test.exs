@@ -148,14 +148,19 @@ defmodule Kiq.ClientTest do
 
   describe "record_stats/2" do
     test "general stat counts are updated", %{client: client, redis: redis} do
+      to_int = fn
+        nil -> 0
+        val -> String.to_integer(val)
+      end
+
       assert {:ok, proc_orig} = Redix.command(redis, ["GET", "stat:processed"])
       assert {:ok, fail_orig} = Redix.command(redis, ["GET", "stat:failed"])
       assert :ok = Client.record_stats(client, failure: 1, success: 2)
       assert {:ok, proc_stat} = Redix.command(redis, ["GET", "stat:processed"])
       assert {:ok, fail_stat} = Redix.command(redis, ["GET", "stat:failed"])
 
-      assert String.to_integer(proc_stat) - String.to_integer(proc_orig) == 2
-      assert String.to_integer(fail_stat) - String.to_integer(fail_orig) == 1
+      assert to_int.(proc_stat) - to_int.(proc_orig) == 2
+      assert to_int.(fail_stat) - to_int.(fail_orig) == 1
     end
   end
 end
