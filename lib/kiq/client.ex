@@ -84,15 +84,9 @@ defmodule Kiq.Client do
   ## Clearing & Removal
 
   @doc false
-  @spec clear_queue(client(), queue()) :: :ok
-  def clear_queue(client, queue) when is_binary(queue) do
-    GenServer.call(client, {:clear, [queue_name(queue), backup_name(queue)]})
-  end
-
-  @doc false
-  @spec clear_set(client(), queue()) :: :ok
-  def clear_set(client, set) when is_binary(set) do
-    GenServer.call(client, {:clear, [set]})
+  @spec clear_all(client()) :: :ok
+  def clear_all(client) do
+    GenServer.call(client, :clear)
   end
 
   @doc false
@@ -203,8 +197,9 @@ defmodule Kiq.Client do
 
   ## Clearing & Removal
 
-  def handle_call({:clear, keys}, _from, %State{conn: conn} = state) do
-    {:ok, _result} = Redix.command(conn, ["DEL" | keys])
+  def handle_call(:clear, _from, %State{conn: conn} = state) do
+    {:ok, queues} = Redix.command(conn, ["KEYS", "queue*"])
+    {:ok, _reply} = Redix.command(conn, ["DEL", @retry_set, @schedule_set | queues])
 
     {:reply, :ok, state}
   end

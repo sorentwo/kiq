@@ -15,9 +15,7 @@ defmodule Kiq.ClientTest do
     {:ok, client} = start_supervised({Client, config: config})
     {:ok, redis} = start_supervised({Redix, [redis_url()]})
 
-    :ok = Client.clear_queue(client, @queue)
-    :ok = Client.clear_set(client, @retry_set)
-    :ok = Client.clear_set(client, @schedule_set)
+    :ok = Client.clear_all(client)
 
     {:ok, client: client, redis: redis}
   end
