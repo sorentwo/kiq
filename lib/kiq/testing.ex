@@ -6,7 +6,7 @@ defmodule Kiq.Testing do
   alias Kiq.Client
 
   @doc false
-  def assert_enqueued(client, args) do
+  def assert_enqueued(client \\ Client, args) do
     args = Enum.into(args, %{})
     jobs = jobs(client, args)
 
@@ -16,7 +16,7 @@ defmodule Kiq.Testing do
   end
 
   @doc false
-  def refute_enqueued(client, args) do
+  def refute_enqueued(client \\ Client, args) do
     args = Enum.into(args, %{})
     jobs = jobs(client, args)
 
