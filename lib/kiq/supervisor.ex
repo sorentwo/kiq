@@ -21,15 +21,27 @@ defmodule Kiq.Supervisor do
 
   @impl Supervisor
   def init(%Config{} = config) do
-    children = [
-      {Client, Keyword.put(config.client_opts, :name, config.client)},
-      {ReporterSupervisor, config: config}
-    ]
+    children = client_children(config) ++ server_children(config)
 
+    Supervisor.init(children, strategy: :rest_for_one)
+  end
+
+  ## Helpers
+
+  defp client_children(config) do
+    [{Client, config: config, name: config.client}]
+  end
+
+  defp server_children(%Config{server?: false}) do
+    []
+  end
+
+  defp server_children(config) do
+    reporters = [{ReporterSupervisor, config: config}]
     schedulers = Enum.map(config.schedulers, &scheduler_spec(&1, config))
     queues = Enum.map(config.queues, &queue_spec(&1, config))
 
-    Supervisor.init(children ++ schedulers ++ queues, strategy: :rest_for_one)
+    reporters ++ schedulers ++ queues
   end
 
   defp scheduler_spec(set, config) do

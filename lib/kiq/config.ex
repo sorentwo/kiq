@@ -10,14 +10,16 @@ defmodule Kiq.Config do
           client_opts: Keyword.t(),
           reporter: module(),
           schedulers: list(binary()),
-          queues: list(queue_config())
+          queues: list(queue_config()),
+          server?: boolean()
         }
 
   defstruct client: Kiq.Client,
             client_opts: [],
             reporter: Kiq.Reporter,
             schedulers: ~w(retry schedule),
-            queues: [default: 25]
+            queues: [default: 25],
+            server?: true
 
   @doc false
   @spec new(map() | Keyword.t()) :: t()

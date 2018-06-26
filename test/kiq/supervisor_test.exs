@@ -1,5 +1,5 @@
 defmodule Kiq.SupervisorTest do
-  use Kiq.Case, async: true
+  use Kiq.Case
 
   alias Kiq.Config
   alias Kiq.Supervisor, as: KiqSup
@@ -22,6 +22,21 @@ defmodule Kiq.SupervisorTest do
       assert Kiq.Queue.Default in children
       assert Kiq.Queue.Priority in children
       assert Kiq.Scheduler.Retry in children
+
+      :ok = stop_supervised(KiqSup)
+    end
+
+    test "only the client is started when :server? is false" do
+      config = Config.new(client_opts: [redis_url: redis_url()], server?: false)
+
+      {:ok, sup} = start_supervised({KiqSup, config: config})
+
+      children = for {_, _pid, _type, [module]} <- Supervisor.which_children(sup), do: module
+
+      assert Kiq.Client in children
+      refute Kiq.Reporter.Supervisor in children
+      refute Kiq.Queue.Scheduler in children
+      refute Kiq.Queue.Supervisor in children
 
       :ok = stop_supervised(KiqSup)
     end

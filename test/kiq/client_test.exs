@@ -1,7 +1,7 @@
 defmodule Kiq.ClientTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{Client, Heartbeat, Job, Timestamp}
+  alias Kiq.{Client, Config, Heartbeat, Job, Timestamp}
 
   @queue "testing"
   @queue_list "queue:#{@queue}"
@@ -10,7 +10,9 @@ defmodule Kiq.ClientTest do
   @schedule_set "schedule"
 
   setup do
-    {:ok, client} = start_supervised({Client, redis_url: redis_url()})
+    config = Config.new(client_opts: [redis_url: redis_url()])
+
+    {:ok, client} = start_supervised({Client, config: config})
     {:ok, redis} = start_supervised({Redix, [redis_url()]})
 
     :ok = Client.clear_queue(client, @queue)

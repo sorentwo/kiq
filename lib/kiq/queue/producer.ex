@@ -5,6 +5,13 @@ defmodule Kiq.Queue.Producer do
 
   alias Kiq.Client
 
+  @type options :: [
+          client: identifier(),
+          demand: non_neg_integer(),
+          poll_interval: non_neg_integer(),
+          queue: binary()
+        ]
+
   defmodule State do
     @moduledoc false
 
@@ -13,7 +20,7 @@ defmodule Kiq.Queue.Producer do
   end
 
   @doc false
-  @spec start_link(opts :: Keyword.t()) :: GenServer.on_start()
+  @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 

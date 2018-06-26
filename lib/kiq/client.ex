@@ -3,10 +3,11 @@ defmodule Kiq.Client do
 
   use GenServer
 
-  alias Kiq.{Heartbeat, Job, Timestamp}
+  alias Kiq.{Config, Heartbeat, Job, Timestamp}
 
   @type client :: GenServer.server()
   @type queue :: binary() | atom()
+  @type options :: [config: Config.t(), name: GenServer.name()]
   @type set :: binary() | atom()
   @type stat_report :: [success: integer(), failure: integer()]
 
@@ -21,14 +22,12 @@ defmodule Kiq.Client do
   end
 
   @doc false
-  @spec start_link(Keyword.t()) :: GenServer.on_start()
+  @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 
     GenServer.start_link(__MODULE__, opts, name: name)
   end
-
-  ## Jobs
 
   @doc false
   @spec enqueue(client(), Job.t()) :: {:ok, Job.t()}
@@ -119,7 +118,9 @@ defmodule Kiq.Client do
   # Server
 
   @impl GenServer
-  def init(redis_url: redis_url) do
+  def init(config: %Config{client_opts: client_opts}) do
+    redis_url = Keyword.fetch!(client_opts, :redis_url)
+
     {:ok, conn} = Redix.start_link(redis_url)
 
     {:ok, %State{conn: conn}}
