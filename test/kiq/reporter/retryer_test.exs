@@ -4,6 +4,8 @@ defmodule Kiq.Reporter.RetryerTest do
   alias Kiq.{Config, EchoClient, FakeProducer, Job}
   alias Kiq.Reporter.Retryer, as: Reporter
 
+  @error %RuntimeError{message: "bad stuff happened"}
+
   defp emit_event(event) do
     {:ok, cli} = start_supervised({EchoClient, test_pid: self()})
     {:ok, pro} = start_supervised({FakeProducer, events: [event]})
@@ -27,29 +29,30 @@ defmodule Kiq.Reporter.RetryerTest do
 
     :ok = emit_event({:stopped, job})
 
-    assert_receive {:remove_backup, ^job}
+    assert_receive {:remove_backup, ^job}, 1_000
   end
 
   test "failed jobs are pushed into the retry set" do
-    error = %RuntimeError{message: "bad stuff happened"}
+    :ok = emit_event({:failure, job(retry: true, retry_count: 0), @error, []})
 
-    :ok = emit_event({:failure, job(retry: true, retry_count: 0), error, []})
+    assert_receive {:enqueue_at, %Job{} = job, "retry"}, 1_000
 
-    receive do
-      {:enqueue_at, %Job{} = job, "retry"} ->
-        assert job.retry_count == 1
-        assert job.error_class == "RuntimeError"
-        assert job.error_message == "bad stuff happened"
-    after
-      1_000 ->
-        flunk("No :retry message was ever received")
-    end
+    assert job.retry_count == 1
+    assert job.error_class == "RuntimeError"
+    assert job.error_message == "bad stuff happened"
+  end
+
+  test "jobs are enqueued with a custom retry limit" do
+    :ok = emit_event({:failure, job(retry: 6, retry_count: 5), @error, []})
+
+    assert_receive {:enqueue_at, %Job{} = job, "retry"}, 1_000
+
+    assert job.retry == 6
+    assert job.retry_count == 6
   end
 
   test "jobs are not enqueued when retries are exhausted" do
-    error = %RuntimeError{message: "bad stuff happened"}
-
-    :ok = emit_event({:failure, job(retry: true, retry_count: 25), error, []})
+    :ok = emit_event({:failure, job(retry: true, retry_count: 25), @error, []})
 
     refute_receive {:enqueue_at, %Job{}, "retry"}
   end

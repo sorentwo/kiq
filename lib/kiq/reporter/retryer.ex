@@ -7,10 +7,12 @@ defmodule Kiq.Reporter.Retryer do
 
   @type options :: [config: Config.t(), name: identifier()]
 
+  @default_max 25
+
   defmodule State do
     @moduledoc false
 
-    defstruct client: nil, max_retries: 25
+    defstruct client: nil
   end
 
   @doc false
@@ -37,21 +39,19 @@ defmodule Kiq.Reporter.Retryer do
 
   # Helpers
 
-  defp retry_event({:failure, %Job{retry: true, retry_count: count} = job, error, _stack}, %State{
-         client: client,
-         max_retries: max
-       })
-       when count < max do
-    job =
-      job
-      |> Map.replace!(:retry_count, count + 1)
-      |> Map.replace!(:failed_at, Timestamp.unix_now())
-      |> Map.replace!(:retried_at, Timestamp.unix_now())
-      |> Map.replace!(:at, retry_at(count))
-      |> Map.replace!(:error_class, error_name(error))
-      |> Map.replace!(:error_message, Exception.message(error))
+  defp retry_event({:failure, %Job{retry_count: count} = job, error, _stack}, state) do
+    if retryable?(job) do
+      job =
+        job
+        |> Map.replace!(:retry_count, count + 1)
+        |> Map.replace!(:failed_at, Timestamp.unix_now())
+        |> Map.replace!(:retried_at, Timestamp.unix_now())
+        |> Map.replace!(:at, retry_at(count))
+        |> Map.replace!(:error_class, error_name(error))
+        |> Map.replace!(:error_message, Exception.message(error))
 
-    Client.enqueue(client, job)
+      Client.enqueue(state.client, job)
+    end
   end
 
   defp retry_event({:stopped, %Job{} = job}, %State{client: client}) do
@@ -61,6 +61,10 @@ defmodule Kiq.Reporter.Retryer do
   defp retry_event(_event, _state) do
     :ok
   end
+
+  defp retryable?(%Job{retry: false}), do: false
+  defp retryable?(%Job{retry: true, retry_count: count}), do: count < @default_max
+  defp retryable?(%Job{retry: max, retry_count: count}) when is_integer(max), do: count < max
 
   defp backoff_offset(count, base_value \\ 15, rand_range \\ 30) do
     trunc(:math.pow(count, 4) + base_value + (:rand.uniform(rand_range) + (count + 1)))

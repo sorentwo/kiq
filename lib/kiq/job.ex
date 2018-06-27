@@ -32,7 +32,7 @@ defmodule Kiq.Job do
           class: binary(),
           args: list(any),
           queue: binary(),
-          retry: boolean(),
+          retry: boolean() | non_neg_integer(),
           retry_count: non_neg_integer(),
           at: Timestamp.t(),
           created_at: Timestamp.t(),
