@@ -62,9 +62,11 @@ defmodule Kiq.Job do
   @doc """
   Build a new `Job` struct with all dynamic arguments populated.
 
-      iex> job = Kiq.Job.new(%{class: "Worker"})
-      ...> Map.take(job, [:class, :args, :queue])
+      iex> Kiq.Job.new(%{class: "Worker"}) |> Map.take([:class, :args, :queue])
       %{class: "Worker", args: [], queue: "default"}
+
+      iex> Kiq.Job.new(module: "Worker") |> Map.get(:class)
+      "Worker"
   """
   @spec new(args :: map() | Keyword.t()) :: t()
   def new(%{class: class} = args) do
@@ -78,6 +80,13 @@ defmodule Kiq.Job do
     args = if args[:at], do: Map.delete(args, :enqueued_at), else: args
 
     struct!(__MODULE__, args)
+  end
+
+  def new(%{module: module} = args) do
+    args
+    |> Map.delete(:module)
+    |> Map.put(:class, module)
+    |> new()
   end
 
   def new(args) when is_list(args) do
