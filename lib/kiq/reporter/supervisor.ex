@@ -4,7 +4,7 @@ defmodule Kiq.Reporter.Supervisor do
   use Supervisor
 
   alias Kiq.Config
-  alias Kiq.Reporter.{Logger, Producer, Retryer, Stats}
+  alias Kiq.Reporter.Producer
 
   @type options :: [config: Config.t(), name: identifier()]
 
@@ -18,14 +18,14 @@ defmodule Kiq.Reporter.Supervisor do
   end
 
   @impl Supervisor
-  def init(%Config{client: client, queues: queues, reporter: reporter}) do
-    children = [
-      {Producer, name: reporter},
-      {Logger, subscribe_to: [reporter]},
-      {Retryer, client: client, subscribe_to: [reporter]},
-      {Stats, client: client, queues: queues, subscribe_to: [reporter]}
-    ]
+  def init(%Config{reporter: producer, reporters: reporters} = config) do
+    consumers = for reporter <- reporters, do: reporter_spec(reporter, config)
+    children = [{Producer, name: producer} | consumers]
 
     Supervisor.init(children, strategy: :rest_for_one)
+  end
+
+  defp reporter_spec(reporter, %Config{reporter: producer} = config) do
+    {reporter, config: config, subscribe_to: [producer]}
   end
 end

@@ -3,14 +3,9 @@ defmodule Kiq.Reporter.Stats do
 
   use GenStage
 
-  alias Kiq.{Client, Heartbeat}
+  alias Kiq.{Client, Config, Heartbeat}
 
-  @type options :: [
-          client: module(),
-          flush_interval: non_neg_integer(),
-          queues: list(),
-          name: identifier()
-        ]
+  @type options :: [config: Config.t(), flush_interval: non_neg_integer(), name: identifier()]
 
   defmodule State do
     @moduledoc false
@@ -33,13 +28,14 @@ defmodule Kiq.Reporter.Stats do
 
   @impl GenStage
   def init(opts) do
-    {args, opts} = Keyword.split(opts, [:client, :queues, :flush_interval])
+    {conf, opts} = Keyword.pop(opts, :config)
+    {fint, opts} = Keyword.pop(opts, :flush_interval, 1_000)
 
     Process.flag(:trap_exit, true)
 
     state =
       State
-      |> struct!(args)
+      |> struct!(client: conf.client, queues: conf.queues, flush_interval: fint)
       |> schedule_flush()
 
     {:consumer, %State{state | heartbeat: Heartbeat.new(queues: state.queues)}, opts}

@@ -6,9 +6,10 @@ defmodule Kiq.Config do
   @type queue_config :: {queue_name(), queue_size()}
 
   @type t :: %__MODULE__{
-          client: module(),
+          client: GenServer.server(),
           client_opts: Keyword.t(),
-          reporter: module(),
+          reporter: GenServer.server(),
+          reporters: list(module()),
           schedulers: list(binary()),
           queues: list(queue_config()),
           server?: boolean()
@@ -17,6 +18,7 @@ defmodule Kiq.Config do
   defstruct client: Kiq.Client,
             client_opts: [],
             reporter: Kiq.Reporter,
+            reporters: [Kiq.Reporter.Logger, Kiq.Reporter.Retryer, Kiq.Reporter.Stats],
             schedulers: ~w(retry schedule),
             queues: [default: 25],
             server?: true

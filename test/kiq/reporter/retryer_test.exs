@@ -1,13 +1,13 @@
 defmodule Kiq.Reporter.RetryerTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{EchoClient, FakeProducer, Job}
+  alias Kiq.{Config, EchoClient, FakeProducer, Job}
   alias Kiq.Reporter.Retryer, as: Reporter
 
   defp emit_event(event) do
     {:ok, cli} = start_supervised({EchoClient, test_pid: self()})
     {:ok, pro} = start_supervised({FakeProducer, events: [event]})
-    {:ok, con} = start_supervised({Reporter, client: cli})
+    {:ok, con} = start_supervised({Reporter, config: %Config{client: cli}})
 
     GenStage.sync_subscribe(con, to: pro)
 

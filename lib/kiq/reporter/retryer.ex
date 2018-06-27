@@ -3,7 +3,9 @@ defmodule Kiq.Reporter.Retryer do
 
   use GenStage
 
-  alias Kiq.{Client, Job, Timestamp}
+  alias Kiq.{Client, Config, Job, Timestamp}
+
+  @type options :: [config: Config.t(), name: identifier()]
 
   defmodule State do
     @moduledoc false
@@ -12,7 +14,7 @@ defmodule Kiq.Reporter.Retryer do
   end
 
   @doc false
-  @spec start_link(opts :: Keyword.t()) :: GenServer.on_start()
+  @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 
@@ -21,9 +23,9 @@ defmodule Kiq.Reporter.Retryer do
 
   @impl GenStage
   def init(opts) do
-    {args, opts} = Keyword.split(opts, [:client, :max_retries])
+    {%Config{client: client}, opts} = Keyword.pop(opts, :config)
 
-    {:consumer, struct(State, args), opts}
+    {:consumer, %State{client: client}, opts}
   end
 
   @impl GenStage

@@ -5,10 +5,12 @@ defmodule Kiq.Reporter.Logger do
 
   use GenStage
 
-  alias Kiq.Job
+  alias Kiq.{Config, Job}
+
+  @type options :: [config: Config.t(), name: identifier()]
 
   @doc false
-  @spec start_link(opts :: Keyword.t()) :: GenServer.on_start()
+  @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
 
@@ -17,6 +19,8 @@ defmodule Kiq.Reporter.Logger do
 
   @impl GenStage
   def init(opts) do
+    opts = Keyword.delete(opts, :config)
+
     {:consumer, :ok, opts}
   end
 
