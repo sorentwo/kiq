@@ -113,11 +113,18 @@ defmodule Kiq.Job do
   @doc """
   Decode an encoded job from JSON into a Job struct.
 
+  All keys are atomized, including keys within arguments. This does _not_ use
+  `String.to_existing_atom/1`, so be wary of encoding large maps.
+
   # Example
 
       iex> job = Kiq.Job.decode(~s({"class":"MyWorker","args":[1,2]}))
       ...> Map.take(job, [:class, :args])
       %{class: "MyWorker", args: [1, 2]}
+
+      iex> job = Kiq.Job.decode(~s({"class":"MyWorker","args":{"a":1}}))
+      ...> Map.get(job, :args)
+      %{a: 1}
   """
   @spec decode(input :: binary()) :: t() | no_return()
   def decode(input) when is_binary(input) do

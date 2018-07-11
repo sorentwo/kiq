@@ -11,7 +11,7 @@ defmodule Kiq.JobTest do
         [pid: self(), args: [1, 2], queue: "default"]
         |> job()
         |> Job.encode()
-        |> Jason.decode!(keys: :atoms)
+        |> Job.decode(keys: :atoms)
 
       assert %{queue: "default", args: [1, 2]} = decoded
 
