@@ -11,14 +11,14 @@ defmodule Kiq.JobTest do
         [pid: self(), args: [1, 2], queue: "default"]
         |> job()
         |> Job.encode()
-        |> Job.decode(keys: :atoms)
+        |> Job.decode()
 
-      assert %{queue: "default", args: [1, 2]} = decoded
-
-      assert decoded[:jid]
-      assert decoded[:class]
-      refute decoded[:pid]
-      refute decoded[:failed_at]
+      assert decoded.queue == "default"
+      assert decoded.args == [1, 2]
+      assert decoded.jid
+      assert decoded.class
+      refute decoded.pid
+      refute decoded.failed_at
     end
   end
 end

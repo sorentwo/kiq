@@ -7,7 +7,7 @@ defmodule Kiq.Reporter.SupervisorTest do
 
   describe "start_link/1" do
     test "producer and consumer children are managed for the queue" do
-      config = Config.new(client: Echo, reporter: Kiq.Rep)
+      config = Config.new(client_name: Echo, reporter_name: Kiq.Rep)
 
       {:ok, _ci} = start_supervised({EchoClient, name: Echo})
       {:ok, sup} = start_supervised({ReporterSupervisor, config: config})

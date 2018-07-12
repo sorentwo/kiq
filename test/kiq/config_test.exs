@@ -8,15 +8,10 @@ defmodule Kiq.ConfigTest do
       config = Config.new()
 
       assert config.client
-      assert config.reporter
+      assert config.client_name
+      assert config.reporter_name
       assert config.schedulers
       assert config.queues
-    end
-
-    test "default dynamic opts are evaluated and inserted" do
-      config = Config.new()
-
-      assert config.client_opts == [redis_url: System.get_env("REDIS_URL")]
     end
 
     test "provided values are not overwritten" do

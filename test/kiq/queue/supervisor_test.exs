@@ -28,7 +28,7 @@ defmodule Kiq.Queue.SupervisorTest do
 
   describe "start_link/1" do
     test "producer and consumer children are managed for the queue" do
-      conf = Config.new(client: Fake, reporter: Kiq.Rep)
+      conf = Config.new(client_name: Fake, reporter_name: Kiq.Rep)
 
       {:ok, _cl} = start_supervised({FakeClient, name: Fake})
       {:ok, sup} = start_supervised({QueueSupervisor, [config: conf, queue: "super", limit: 10]})

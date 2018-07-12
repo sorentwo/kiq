@@ -5,6 +5,17 @@ defmodule Kiq.Integration.JobsTest do
 
   @table :jobs_test
 
+  defmodule Integration do
+    use Kiq, queues: [integration: 2]
+
+    @impl Kiq
+    def init(_reason, opts) do
+      client_opts = [redis_url: Kiq.Case.redis_url()]
+
+      {:ok, Keyword.put(opts, :client_opts, client_opts)}
+    end
+  end
+
   defmodule IntegrationWorker do
     use Kiq.Worker, queue: "integration"
 
@@ -16,9 +27,7 @@ defmodule Kiq.Integration.JobsTest do
   setup do
     :ets.new(@table, [:public, :named_table])
 
-    config = Kiq.Config.new(queues: [integration: 2], client_opts: [redis_url: redis_url()])
-
-    start_supervised!({Kiq.Supervisor, config: config})
+    start_supervised!(Integration)
 
     :ok
   end
@@ -26,7 +35,11 @@ defmodule Kiq.Integration.JobsTest do
   test "enqueuing and executing jobs successfully" do
     logged =
       capture_log([colors: [enabled: false]], fn ->
-        for index <- 1..5, do: IntegrationWorker.perform_async(Kiq.Client, [index])
+        for index <- 1..5 do
+          [index]
+          |> IntegrationWorker.new()
+          |> Integration.enqueue()
+        end
 
         assert_values([1, 2, 3, 4, 5])
       end)
@@ -35,13 +48,17 @@ defmodule Kiq.Integration.JobsTest do
     assert logged =~ ~s("status":"success")
     refute logged =~ ~s("status":"failure")
 
-    :ok = stop_supervised(Kiq.Supervisor)
+    :ok = stop_supervised(Integration)
   end
 
   test "scheduling and executing jobs successfully" do
     logged =
       capture_log([colors: [enabled: false]], fn ->
-        for index <- 1..5, do: IntegrationWorker.perform_in(Kiq.Client, 1, [index])
+        for index <- 1..5 do
+          [index]
+          |> IntegrationWorker.new()
+          |> Integration.enqueue(in: 1)
+        end
 
         assert_values([1, 2, 3, 4, 5], retry: 50)
       end)
@@ -50,7 +67,7 @@ defmodule Kiq.Integration.JobsTest do
     assert logged =~ ~s("status":"success")
     refute logged =~ ~s("status":"failure")
 
-    :ok = stop_supervised(Kiq.Supervisor)
+    :ok = stop_supervised(Integration)
   end
 
   defp assert_values(values, opts \\ []) when is_list(opts) do

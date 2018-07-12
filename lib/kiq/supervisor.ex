@@ -3,33 +3,45 @@ defmodule Kiq.Supervisor do
 
   use Supervisor
 
-  alias Kiq.{Client, Config}
+  alias Kiq.Config
   alias Kiq.Queue.Scheduler
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
   alias Kiq.Reporter.Supervisor, as: ReporterSupervisor
 
-  @type options :: [config: Config.t(), name: identifier()]
-
   @doc false
-  @spec start_link(opts :: options()) :: Supervisor.on_start()
+  @spec start_link(opts :: Keyword.t()) :: Supervisor.on_start()
   def start_link(opts) when is_list(opts) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    conf = Keyword.get(opts, :config, Config.new())
+    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
 
-    Supervisor.start_link(__MODULE__, conf, name: name)
+    Supervisor.start_link(__MODULE__, opts, name: name)
   end
 
   @impl Supervisor
-  def init(%Config{} = config) do
-    children = client_children(config) ++ server_children(config)
+  def init(opts) do
+    with {:ok, opts} <- init_config(opts) do
+      config = Config.new(opts)
+      children = client_children(config) ++ server_children(config)
 
-    Supervisor.init(children, strategy: :rest_for_one)
+      Supervisor.init(children, strategy: :rest_for_one)
+    end
+  end
+
+  @doc false
+  @spec init_config(Keyword.t()) :: {atom(), Keyword.t()}
+  def init_config(opts) do
+    {main, opts} = Keyword.pop(opts, :main)
+
+    if main && function_exported?(main, :init, 2) do
+      apply(main, :init, [:supervisor, opts])
+    else
+      {:ok, opts}
+    end
   end
 
   ## Helpers
 
   defp client_children(config) do
-    [{Client, config: config, name: config.client}]
+    [{config.client, config: config, name: config.client_name}]
   end
 
   defp server_children(%Config{server?: false}) do
@@ -46,7 +58,7 @@ defmodule Kiq.Supervisor do
 
   defp scheduler_spec(set, config) do
     name = Module.concat(["Kiq", "Scheduler", String.capitalize(set)])
-    opts = [client: config.client, set: set, name: name]
+    opts = [client: config.client_name, set: set, name: name]
 
     Supervisor.child_spec({Scheduler, opts}, id: name)
   end

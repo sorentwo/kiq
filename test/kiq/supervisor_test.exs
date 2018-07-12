@@ -1,19 +1,17 @@
 defmodule Kiq.SupervisorTest do
   use Kiq.Case
 
-  alias Kiq.Config
   alias Kiq.Supervisor, as: KiqSup
 
   describe "start_link/1" do
     test "named processes are started based on provided configuration" do
-      config =
-        Config.new(
-          client_opts: [redis_url: redis_url()],
-          schedulers: ["retry"],
-          queues: [default: 2, priority: 2]
-        )
+      opts = [
+        client_opts: [redis_url: redis_url()],
+        schedulers: ["retry"],
+        queues: [default: 2, priority: 2]
+      ]
 
-      {:ok, sup} = start_supervised({KiqSup, config: config})
+      {:ok, sup} = start_supervised({KiqSup, opts})
 
       children = for {name, _pid, _type, _id} <- Supervisor.which_children(sup), do: name
 
@@ -27,9 +25,9 @@ defmodule Kiq.SupervisorTest do
     end
 
     test "only the client is started when :server? is false" do
-      config = Config.new(client_opts: [redis_url: redis_url()], server?: false)
+      opts = [client_opts: [redis_url: redis_url()], server?: false]
 
-      {:ok, sup} = start_supervised({KiqSup, config: config})
+      {:ok, sup} = start_supervised({KiqSup, opts})
 
       children = for {_, _pid, _type, [module]} <- Supervisor.which_children(sup), do: module
 
@@ -39,6 +37,22 @@ defmodule Kiq.SupervisorTest do
       refute Kiq.Queue.Supervisor in children
 
       :ok = stop_supervised(KiqSup)
+    end
+  end
+
+  describe "init_config/1" do
+    test "without a :main value opts are passed through" do
+      assert {:ok, [client: MyClient]} = KiqSup.init_config([client: MyClient])
+    end
+
+    test "the init/2 function is called when supplied a :main module" do
+      defmodule CustomInit do
+        def init(_reason, opts) do
+          {:ok, Keyword.put(opts, :client, MyClient)}
+        end
+      end
+
+      assert {:ok, [client: MyClient]} = KiqSup.init_config([main: CustomInit])
     end
   end
 end
