@@ -75,9 +75,6 @@ defmodule Kiq.Job do
       |> Map.put(:class, to_string(class))
       |> Map.put_new(:jid, random_jid())
       |> Map.put_new(:created_at, Timestamp.unix_now())
-      |> Map.put_new(:enqueued_at, Timestamp.unix_now())
-
-    args = if args[:at], do: Map.delete(args, :enqueued_at), else: args
 
     struct!(__MODULE__, args)
   end

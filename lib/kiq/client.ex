@@ -258,6 +258,8 @@ defmodule Kiq.Client do
   defp backup_name(queue), do: "queue:#{queue}:backup"
 
   defp push_job(conn, %Job{queue: queue} = job) do
+    job = %Job{job | enqueued_at: Timestamp.unix_now()}
+
     commands = [
       ["SADD", "queues", queue],
       ["LPUSH", queue_name(queue), Job.encode(job)]

@@ -46,7 +46,9 @@ defmodule Kiq.ClientTest do
 
   describe "enqueue/2" do
     test "jobs are enqueued in the configured queue", %{client: client} do
-      assert {:ok, %Job{}} = Client.enqueue(client, job())
+      assert {:ok, %Job{} = job} = Client.enqueue(client, job())
+
+      assert job.enqueued_at
 
       assert 1 == Client.queue_size(client, @queue)
       assert 0 == Client.set_size(client, @schedule_set)
