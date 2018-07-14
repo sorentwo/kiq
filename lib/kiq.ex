@@ -33,6 +33,13 @@ defmodule Kiq do
   @callback init(reason :: :supervisor, opts :: Keyword.t()) :: {:ok, Keyword.t()} | :ignore
 
   @doc """
+  Clear all enqueued, scheduled and backup jobs.
+
+  All known queues are cleared, even if they aren't listed in the current configuration.
+  """
+  @callback clear_all() :: :ok
+
+  @doc """
   Enqueue a job to be processed asynchronously.
 
   Jobs can be enqueued from `Job` structs, maps or keyword lists.
@@ -94,11 +101,16 @@ defmodule Kiq do
       end
 
       @impl Kiq
+      def clear_all do
+        Kiq.Client.clear_all(@client_name)
+      end
+
+      @impl Kiq
       def enqueue(job_args, job_opts \\ []) when is_map(job_args) or is_list(job_args) do
         Kiq.enqueue(@client_name, job_args, job_opts)
       end
 
-      defoverridable child_spec: 1, init: 2, start_link: 1
+      defoverridable child_spec: 1, enqueue: 2, init: 2, start_link: 1
     end
   end
 
