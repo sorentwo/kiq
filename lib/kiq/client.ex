@@ -32,7 +32,7 @@ defmodule Kiq.Client do
   @doc false
   @spec enqueue(client(), Job.t()) :: {:ok, Job.t()}
   def enqueue(client, %Job{retry: retry, retry_count: count} = job)
-      when is_integer(retry) or retry == true and count > 0 do
+      when is_integer(retry) or (retry == true and count > 0) do
     GenServer.call(client, {:enqueue_at, job, @retry_set})
   end
 

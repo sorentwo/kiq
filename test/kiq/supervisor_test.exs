@@ -42,7 +42,7 @@ defmodule Kiq.SupervisorTest do
 
   describe "init_config/1" do
     test "without a :main value opts are passed through" do
-      assert {:ok, [client: MyClient]} = KiqSup.init_config([client: MyClient])
+      assert {:ok, [client: MyClient]} = KiqSup.init_config(client: MyClient)
     end
 
     test "the init/2 function is called when supplied a :main module" do
@@ -52,7 +52,7 @@ defmodule Kiq.SupervisorTest do
         end
       end
 
-      assert {:ok, [client: MyClient]} = KiqSup.init_config([main: CustomInit])
+      assert {:ok, [client: MyClient]} = KiqSup.init_config(main: CustomInit)
     end
   end
 end

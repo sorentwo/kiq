@@ -11,6 +11,7 @@ before_script:
   - mix compile
   - travis_wait mix dialyzer --plt
 script:
+  - mix format --check-formatted
   - mix credo
   - mix dialyzer
   - mix test

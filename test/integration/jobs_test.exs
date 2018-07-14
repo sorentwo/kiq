@@ -23,7 +23,7 @@ defmodule Kiq.Integration.JobsTest do
         |> Base.decode64!()
         |> :erlang.binary_to_term()
 
-      send pid, {:processed, value}
+      send(pid, {:processed, value})
     end
   end
 
