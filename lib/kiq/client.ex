@@ -110,6 +110,12 @@ defmodule Kiq.Client do
     GenServer.call(client, {:record_stats, stats})
   end
 
+  @doc false
+  @spec remove_heart(client(), Heartbeat.t()) :: :ok
+  def remove_heart(client, %Heartbeat{} = heartbeat) do
+    GenServer.call(client, {:remove_heart, heartbeat})
+  end
+
   # Server
 
   @impl GenServer
@@ -245,6 +251,16 @@ defmodule Kiq.Client do
       ["INCRBY", "stat:failed", failed],
       ["INCRBY", "stat:failed:#{date}", failed]
     ]
+
+    {:ok, _result} = Redix.pipeline(conn, commands)
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:remove_heart, heartbeat}, _from, %State{conn: conn} = state) do
+    %Heartbeat{identity: key} = heartbeat
+
+    commands = [["SREM", "processes", key], ["DEL", "#{key}:workers"]]
 
     {:ok, _result} = Redix.pipeline(conn, commands)
 

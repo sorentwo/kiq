@@ -61,7 +61,16 @@ defmodule Kiq.Reporter.Stats do
 
   @impl GenStage
   def terminate(_reason, state) do
-    record_stats(state)
+    # Cleanup is best effort, we do _not_ want to have a messy crash because
+    # stats couldn't be recorded.
+    try do
+      record_stats(state)
+      remove_heart(state)
+    catch
+      :exit, _value -> :ok
+    rescue
+      _error -> :ok
+    end
 
     :ok
   end
@@ -102,6 +111,12 @@ defmodule Kiq.Reporter.Stats do
     :ok = Client.record_stats(client, failure: state.failure_count, success: state.success_count)
 
     %State{state | failure_count: 0, success_count: 0}
+  end
+
+  defp remove_heart(%State{client: client, heartbeat: heartbeat} = state) do
+    :ok = Client.remove_heart(client, heartbeat)
+
+    state
   end
 
   defp schedule_flush(%State{flush_interval: interval} = state) do
