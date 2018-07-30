@@ -66,10 +66,10 @@ defmodule Kiq.Reporter.Stats do
     try do
       record_stats(state)
       remove_heart(state)
-    catch
-      :exit, _value -> :ok
     rescue
       _error -> :ok
+    catch
+      :exit, _value -> :ok
     end
 
     :ok
