@@ -1,13 +1,12 @@
 defmodule Kiq.TestingTest do
   use Kiq.Case, async: true
-
-  import Kiq.Testing, only: [assert_enqueued: 2, refute_enqueued: 2]
+  use Kiq.Testing, client: Kiq.TestingTest.FakeClient
 
   defmodule FakeClient do
     use GenServer
 
     def start_link(queues: queues) do
-      GenServer.start_link(__MODULE__, queues)
+      GenServer.start_link(__MODULE__, queues, name: __MODULE__)
     end
 
     def init(queues) do
@@ -25,13 +24,13 @@ defmodule Kiq.TestingTest do
     jobs_a = [job(class: "MyWorker", args: [1, 2], queue: "a")]
     jobs_b = [job(class: "MyWorker", args: [4, 5], queue: "b")]
 
-    {:ok, client} = start_supervised({FakeClient, queues: %{"a" => jobs_a, "b" => jobs_b}})
+    {:ok, _pid} = start_supervised({FakeClient, queues: %{"a" => jobs_a, "b" => jobs_b}})
 
-    assert_enqueued(client, queue: "a", class: "MyWorker")
-    assert_enqueued(client, queue: "b", class: "MyWorker", args: [4, 5])
+    assert_enqueued(queue: "a", class: "MyWorker")
+    assert_enqueued(queue: "b", class: "MyWorker", args: [4, 5])
 
-    refute_enqueued(client, queue: "c", class: "MyWorker", args: [4, 5])
-    refute_enqueued(client, queue: "a", class: "MyWorker", args: [4, 5])
-    refute_enqueued(client, queue: "b", class: "MyWorker", args: [1, 2])
+    refute_enqueued(queue: "c", class: "MyWorker", args: [4, 5])
+    refute_enqueued(queue: "a", class: "MyWorker", args: [4, 5])
+    refute_enqueued(queue: "b", class: "MyWorker", args: [1, 2])
   end
 end
