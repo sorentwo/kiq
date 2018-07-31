@@ -23,10 +23,10 @@ defmodule Kiq.MixProject do
 
   defp deps do
     [
-      {:jason, "~> 1.0"},
+      {:jason, "~> 1.1"},
       {:gen_stage, "~> 0.14"},
       {:redix, "~> 0.7"},
-      {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
+      {:credo, "~> 0.10", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
     ]
   end

@@ -1,8 +1,8 @@
 defmodule Kiq.Queue.RunnerTest do
   use Kiq.Case, async: true
 
-  alias Kiq.Worker
   alias Kiq.Queue.Runner
+  alias Kiq.Worker
 
   defmodule MyWorker do
     use Worker
