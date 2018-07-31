@@ -1,7 +1,7 @@
 defmodule Kiq.Reporter.SupervisorTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{Config, EchoClient}
+  alias Kiq.{Config, EchoClient, EchoConsumer}
   alias Kiq.Reporter.{Logger, Producer, Retryer, Stats}
   alias Kiq.Reporter.Supervisor, as: ReporterSupervisor
 
@@ -23,6 +23,22 @@ defmodule Kiq.Reporter.SupervisorTest do
 
       :ok = stop_supervised(EchoClient)
       :ok = stop_supervised(ReporterSupervisor)
+    end
+
+    test "extra reporters are also supervised" do
+      config =
+        Config.new(
+          client_name: Echo,
+          reporter_name: Kiq.Rep,
+          reporters: [],
+          extra_reporters: [EchoConsumer]
+        )
+
+      {:ok, sup} = start_supervised({ReporterSupervisor, config: config})
+
+      children = for {name, _pid, _type, _id} <- Supervisor.which_children(sup), do: name
+
+      assert EchoConsumer in children
     end
   end
 end

@@ -30,18 +30,23 @@ defmodule Kiq.EchoConsumer do
   use GenStage
 
   def start_link(opts) do
-    opts = Keyword.put_new(opts, :test_pid, self())
+    {name, opts} =
+      opts
+      |> Keyword.put_new(:test_pid, self())
+      |> Keyword.pop(:name)
 
-    GenStage.start_link(__MODULE__, opts)
+    GenStage.start_link(__MODULE__, opts, name: name)
   end
 
   def init(opts) do
-    {args, opts} = Keyword.split(opts, [:test_pid])
+    {args, opts} = Keyword.split(opts, [:config, :test_pid])
 
     {:consumer, args, opts}
   end
 
-  def handle_events(events, _from, [test_pid: test_pid] = state) do
+  def handle_events(events, _from, state) do
+    test_pid = Keyword.fetch!(state, :test_pid)
+
     for event <- events, do: send(test_pid, event)
 
     {:noreply, [], state}

@@ -18,9 +18,11 @@ defmodule Kiq.Reporter.Supervisor do
   end
 
   @impl Supervisor
-  def init(%Config{reporter_name: producer, reporters: reporters} = config) do
-    consumers = for reporter <- reporters, do: reporter_spec(reporter, config)
-    children = [{Producer, name: producer} | consumers]
+  def init(%Config{reporter_name: producer} = config) do
+    %Config{reporters: reporters, extra_reporters: extra_reporters} = config
+
+    children = Enum.map(reporters ++ extra_reporters, &reporter_spec(&1, config))
+    children = [{Producer, name: producer} | children]
 
     Supervisor.init(children, strategy: :rest_for_one)
   end

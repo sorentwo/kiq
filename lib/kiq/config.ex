@@ -11,6 +11,7 @@ defmodule Kiq.Config do
           client_opts: Keyword.t(),
           reporter_name: term(),
           reporters: list(module()),
+          extra_reporters: list(module()),
           schedulers: list(binary()),
           queues: list(queue_config()),
           server?: boolean()
@@ -21,6 +22,7 @@ defmodule Kiq.Config do
             client_opts: [],
             reporter_name: Kiq.Reporter,
             reporters: [Kiq.Reporter.Logger, Kiq.Reporter.Retryer, Kiq.Reporter.Stats],
+            extra_reporters: [],
             schedulers: ~w(retry schedule),
             queues: [default: 25],
             server?: true
