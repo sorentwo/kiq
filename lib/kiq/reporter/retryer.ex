@@ -1,11 +1,9 @@
 defmodule Kiq.Reporter.Retryer do
   @moduledoc false
 
-  use GenStage
+  use Kiq.Reporter
 
-  alias Kiq.{Client, Config, Job, Timestamp}
-
-  @type options :: [config: Config.t(), name: identifier()]
+  alias Kiq.{Client, Config, Job, Reporter, Timestamp}
 
   @default_max 25
 
@@ -15,13 +13,7 @@ defmodule Kiq.Reporter.Retryer do
     defstruct client: nil
   end
 
-  @doc false
-  @spec start_link(opts :: options()) :: GenServer.on_start()
-  def start_link(opts) do
-    {name, opts} = Keyword.pop(opts, :name)
-
-    GenStage.start_link(__MODULE__, opts, name: name)
-  end
+  # Callbacks
 
   @impl GenStage
   def init(opts) do
@@ -30,16 +22,8 @@ defmodule Kiq.Reporter.Retryer do
     {:consumer, %State{client: client}, opts}
   end
 
-  @impl GenStage
-  def handle_events(events, _from, state) do
-    for event <- events, do: retry_event(event, state)
-
-    {:noreply, [], state}
-  end
-
-  # Helpers
-
-  defp retry_event({:failure, %Job{retry_count: count} = job, error, _stack}, state) do
+  @impl Reporter
+  def handle_failure(%Job{retry_count: count} = job, error, _stack, state) do
     if retryable?(job) do
       job =
         job
@@ -52,15 +36,18 @@ defmodule Kiq.Reporter.Retryer do
 
       Client.enqueue(state.client, job)
     end
+
+    state
   end
 
-  defp retry_event({:stopped, %Job{} = job}, %State{client: client}) do
+  @impl Reporter
+  def handle_stopped(%Job{} = job, %State{client: client} = state) do
     :ok = Client.remove_backup(client, job)
+
+    state
   end
 
-  defp retry_event(_event, _state) do
-    :ok
-  end
+  # Helpers
 
   defp retryable?(%Job{retry: false}), do: false
   defp retryable?(%Job{retry: true, retry_count: count}), do: count < @default_max
