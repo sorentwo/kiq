@@ -7,7 +7,7 @@ defmodule Kiq.Reporter do
   define new reporters via `use Kiq.Reporter`. The `using` macro defines all
   necessary `GenStage` functions and defines no-op handlers for all events.
 
-  # Example Custom Reporter
+  ## Example Custom Reporter
 
   Custom reporters may be defined within your application. One common use-case
   for custom reporters would be reporting exceptions to a tracking service. Here
@@ -43,7 +43,7 @@ defmodule Kiq.Reporter do
   supervisor, and that it will be re-attached to the reporter producer upon
   restart if the reporter crashes.
 
-  # Notes About State
+  ## Notes About State
 
   Handler functions are always invoked with the current state. The return value
   of each handler function will be used as the updated state after all events

@@ -1,5 +1,61 @@
 defmodule Kiq do
-  @moduledoc false
+  @moduledoc """
+  Kiq is a robust and extensible job processing queue that aims for
+  compatibility with Sidekiq Enterprise.
+
+  Job queuing, processing and reporting are all built on GenStage. That means
+  maximum parallelism with the safety of backpressure as jobs are processed.
+
+  ## Usage
+
+  Kiq isn't an application that must be started. Similarly to Ecto, you define
+  one or more Kiq modules within your application. This allows multiple
+  supervision trees with entirely different configurations.
+
+  Define a Kiq module for your application:
+
+      defmodule MyApp.Kiq do
+        use Kiq, queues: [default: 25, events: 50]
+
+        @impl Kiq
+        def init(_reason, opts) do
+          for_env = Application.get_env(:my_app, :kiq)
+
+          opts =
+            opts
+            |> Keyword.merge(for_env)
+            |> Keyword.put(:client_opts, [redis_url: System.get_env("REDIS_URL")])
+
+          {:ok, opts}
+        end
+      end
+
+  Include the module in your application's supervision tree:
+
+
+      defmodule MyApp.Application do
+        @moduledoc false
+
+        use Application
+
+        alias MyApp.{Endpoint, Kiq, Repo}
+
+        def start(_type, _args) do
+          children = [
+            {Repo, []},
+            {Endpoint, []},
+            {Kiq, []}
+          ]
+
+          Supervisor.start_link(children, strategy: :one_for_one, name: MyApp.Supervisor)
+        end
+      end
+
+  TODO: Configuration
+  TODO: Workers
+  TODO: Testing
+  TODO: Error Handling
+  """
 
   alias Kiq.{Client, Job, Timestamp}
 

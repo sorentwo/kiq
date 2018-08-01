@@ -3,8 +3,6 @@ defmodule Kiq.Testing do
   This module simplifies testing whether your application is enqueuing jobs as
   expected.
 
-  # Example
-
   If your application has defined a top level Kiq module as `MyApp.Kiq`, then
   you would `use` the testing module inside your application's case templates
   like so:

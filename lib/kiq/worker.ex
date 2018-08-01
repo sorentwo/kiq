@@ -5,6 +5,31 @@ defmodule Kiq.Worker do
   Worker modules do the work of processing a job. At a minimum they must define
   a `perform` function, which will be called with the arguments that were
   enqueued with the `Kiq.Job`.
+
+  ## Defining Workers
+
+  Define a worker to process jobs in the `events` queue:
+
+      defmodule MyApp.Workers.Business do
+        use Kiq.Worker, queue: "events"
+
+        @impl Kiq.Worker
+        def perform(args) do
+          IO.inspect(args)
+        end
+      end
+
+  The `perform/1` function will always receive a list of arguments. In this
+  example the worker will simply inspect any arguments that are provided.
+
+  ## Enqueuing Jobs
+
+  All workers implement a `new/1` function that converts a list of arguments
+  into a `Kiq.Job` that is suitable for enqueuing:
+
+      ["doing", "business"]
+      |> MyApp.Workers.Business.new()
+      |> MyApp.Kiq.enqueue()
   """
 
   alias Kiq.Job
