@@ -3,7 +3,7 @@ defmodule Kiq.Reporter.Retryer do
 
   use Kiq.Reporter
 
-  alias Kiq.{Client, Config, Job, Reporter, Timestamp}
+  alias Kiq.{Client, Job, Reporter, Timestamp}
 
   @default_max 25
 
@@ -17,9 +17,9 @@ defmodule Kiq.Reporter.Retryer do
 
   @impl GenStage
   def init(opts) do
-    {%Config{client: client}, opts} = Keyword.pop(opts, :config)
+    {conf, opts} = Keyword.pop(opts, :config)
 
-    {:consumer, %State{client: client}, opts}
+    {:consumer, %State{client: conf.client_name}, opts}
   end
 
   @impl Reporter

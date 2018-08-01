@@ -25,7 +25,7 @@ defmodule Kiq.Reporter.Stats do
 
     state =
       State
-      |> struct!(client: conf.client, queues: conf.queues, flush_interval: fint)
+      |> struct!(client: conf.client_name, queues: conf.queues, flush_interval: fint)
       |> schedule_flush()
 
     {:consumer, %State{state | heartbeat: Heartbeat.new(queues: state.queues)}, opts}
