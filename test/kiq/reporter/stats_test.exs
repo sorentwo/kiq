@@ -7,7 +7,9 @@ defmodule Kiq.Reporter.StatsTest do
   defp emit_event(event) do
     {:ok, cli} = start_supervised({EchoClient, test_pid: self()})
     {:ok, pro} = start_supervised({FakeProducer, events: [event]})
-    {:ok, con} = start_supervised({Reporter, config: %Config{client_name: cli}, flush_interval: 5})
+
+    {:ok, con} =
+      start_supervised({Reporter, config: %Config{client_name: cli}, flush_interval: 5})
 
     GenStage.sync_subscribe(con, to: pro)
 

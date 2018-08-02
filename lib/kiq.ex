@@ -16,22 +16,9 @@ defmodule Kiq do
 
       defmodule MyApp.Kiq do
         use Kiq, queues: [default: 25, events: 50]
-
-        @impl Kiq
-        def init(_reason, opts) do
-          for_env = Application.get_env(:my_app, :kiq)
-
-          opts =
-            opts
-            |> Keyword.merge(for_env)
-            |> Keyword.put(:client_opts, [redis_url: System.get_env("REDIS_URL")])
-
-          {:ok, opts}
-        end
       end
 
   Include the module in your application's supervision tree:
-
 
       defmodule MyApp.Application do
         @moduledoc false
@@ -51,9 +38,65 @@ defmodule Kiq do
         end
       end
 
-  TODO: Configuration
+  ## Configuration
+
+  Kiq is used to start one or more supervision trees in your application. That
+  means there isn't a central Kiq "app" to configure, instead each supervision
+  tree may be configured independently.
+
+  Configuration options pass through a couple of locations, accumulating
+  overrides until finally passing through the `init/2` callback. Options are
+  accumulated in this order:
+
+  1. Options passed into via the `use` macro. These should be constant compile
+     time options, i.e. `extra_reporters`.
+  2. Options passed to `start_link/1` by the application's supervision tree.
+     These should also be values suitable for compile time.
+  3. Injected by the `init/2` callback inside your application's Kiq instance.
+     This is where runtime configuration such as the Redis URL or environment
+     specific options should be passed. The options can come from any dynamic
+     source such as Mix Config, Vault, Etcd, environment variables, etc.
+
+  The default `init/2` implementation uses `System.get_env/1` to read the
+  `REDIS_URL` on boot. The default callback can be overridden to pull in
+  additional configuration. For example, to grab values from
+  `Application.get_env/2`:
+
+      @impl Kiq
+      def init(_reason, opts) do
+        for_env = Application.get_env(:my_app, :kiq)
+
+        opts =
+          opts
+          |> Keyword.merge(for_env)
+          |> Keyword.put(:client_opts, [redis_url: System.get_env("REDIS_URL")])
+
+        {:ok, opts}
+      end
+
+  The `opts` argument contains all configuration from stages 1 and 2 (the `use`
+  macro and the call to `start_link/1`).
+
+  ### Configuration Options
+
+  * `client_opts` — A keyword list of options provided for the Kiq client. This
+    is client specific, but for the default Redis adapter it must include
+    `redis_url`.
+  * `extra_reporters` — Additional reporters that your application will use to
+    report errors, track external stats, etc. See [Error Handling][] for details.
+  * `queues` — A keyword list of queues where each entry is the name of the
+    queue and the concurrency setting. For example, setting `[default: 10,
+    exports: 5, media: 5]` would start the queues `default`, `exports` and
+    `media` with a combined concurrency of 20. The concurrency setting
+    specifies how many jobs _each queue_ will run concurrently.
+  * `server?` — Whether to start the queue supervisors and start processing
+    jobs or only start the client. This setting is useful for testing or
+    deploying your application's web and workers separately.
+
   TODO: Workers
+
   TODO: Testing
+
   TODO: Error Handling
   """
 
