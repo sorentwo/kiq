@@ -37,8 +37,10 @@ defmodule Kiq.Queue.RunnerTest do
     end
 
     test "failed jobs return exception information", %{reporter: reporter} do
+      class = Kiq.Queue.RunnerTest.MyWorker
+
       assert {:error, job, error, stacktrace} =
-               Runner.run(reporter, encoded_job(class: MyWorker, args: [1]))
+               Runner.run(reporter, encoded_job(class: class, args: [1]))
 
       assert is_pid(job.pid)
       assert Exception.exception?(error)

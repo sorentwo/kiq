@@ -39,7 +39,8 @@ defmodule Kiq.Queue.Runner do
 
       {timing, _return} =
         job.class
-        |> String.to_existing_atom()
+        |> String.split(".")
+        |> Module.safe_concat()
         |> :timer.tc(:perform, [job.args])
 
       Reporter.success(reporter, job, timing: timing)
