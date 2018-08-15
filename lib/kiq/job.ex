@@ -20,6 +20,7 @@ defmodule Kiq.Job do
   * `error_message` — The message from the last exception
   * `error_class` — The exception module (or class, in Sidekiq terms)
   * `backtrace` - The number of lines of error backtrace to store, defaults to none
+  * `unique_for` - How long uniqueness will be enforced for a job
 
   [1]: https://github.com/mperham/sidekiq/wiki/Job-Format
   """
@@ -40,7 +41,8 @@ defmodule Kiq.Job do
           failed_at: Timestamp.t(),
           retried_at: Timestamp.t(),
           error_message: binary(),
-          error_class: binary()
+          error_class: binary(),
+          unique_for: non_neg_integer()
         }
 
   @enforce_keys ~w(jid class)a
@@ -57,7 +59,8 @@ defmodule Kiq.Job do
             failed_at: nil,
             retried_at: nil,
             error_message: nil,
-            error_class: nil
+            error_class: nil,
+            unique_for: nil
 
   @doc """
   Build a new `Job` struct with all dynamic arguments populated.
@@ -98,13 +101,15 @@ defmodule Kiq.Job do
   During the encoding process any keys with `nil` values are removed.
   """
   @spec encode(job :: t()) :: binary() | no_return()
-  def encode(%__MODULE__{} = job) do
-    job
-    |> Map.from_struct()
-    |> Map.drop([:pid])
-    |> Enum.reject(fn {_key, val} -> is_nil(val) end)
-    |> Enum.into(%{})
-    |> Jason.encode!()
+  def encode(%__MODULE__{} = job, opts \\ []) do
+    prepared =
+      job
+      |> Map.from_struct()
+      |> Map.drop([:pid])
+      |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+      |> Enum.into(%{})
+
+    if opts[:native], do: prepared, else: Jason.encode!(prepared)
   end
 
   @doc """

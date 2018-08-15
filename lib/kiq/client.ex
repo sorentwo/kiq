@@ -231,7 +231,7 @@ defmodule Kiq.Client do
       ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
       ["EXPIRE", key, 60],
       ["DEL", wkey],
-      ["HMSET", wkey | Enum.map(running, &worker_detail/1)],
+      ["HMSET" | [wkey | Enum.flat_map(running, &worker_detail/1)]],
       ["EXPIRE", wkey, 60]
     ]
 
@@ -288,7 +288,8 @@ defmodule Kiq.Client do
 
   defp worker_detail({_jid, %Job{pid: pid, queue: queue} = job}) do
     job_key = to_string(:io_lib.format("~p", [pid]))
-    details = %{queue: queue, payload: Job.encode(job), run_at: Timestamp.unix_now()}
+    payload = Job.encode(job, native: true)
+    details = %{queue: queue, payload: payload, run_at: Timestamp.unix_now()}
 
     [job_key, Jason.encode!(details)]
   end

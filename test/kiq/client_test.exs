@@ -132,7 +132,7 @@ defmodule Kiq.ClientTest do
 
   describe "record_heart/2" do
     test "heartbeat process information is updated", %{client: client, redis: redis} do
-      running = %{"jid1" => job(), "jid2" => job()}
+      running = %{"jid1" => job(pid: make_ref()), "jid2" => job(pid: make_ref())}
 
       %Heartbeat{identity: identity} = heartbeat = Heartbeat.new(running: running)
 
@@ -143,6 +143,11 @@ defmodule Kiq.ClientTest do
       assert {:ok, "2"} = Redix.command(redis, ["HGET", identity, "busy"])
       assert {:ok, "false"} = Redix.command(redis, ["HGET", identity, "quiet"])
       assert {:ok, 1} = Redix.command(redis, ["EXISTS", "#{identity}:workers"])
+      assert {:ok, workers} = Redix.command(redis, ["HGETALL", "#{identity}:workers"])
+
+      assert [_ref_a, details_a, _ref_b, _details_b] = workers
+      assert %{"queue" => "testing", "payload" => payload} = Jason.decode!(details_a)
+      assert %{"jid" => _, "class" => _} = payload
 
       assert %{concurrency: 0} = Jason.decode!(info, keys: :atoms)
     end

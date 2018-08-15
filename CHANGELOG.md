@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Correctly convert nested modules binaries into the correct worker, i.e.
   convert `"Kiq.Workers.Business"` into the module `Kiq.Workers.Business`.
+- Correctly serialize pid and job payloads when recording a worker's running
+  jobs for heartbeats. Incorrectly formatted hashes in Redis will cause the
+  Sidekiq "busy" dashboard to crash.
 
 ## [0.1.0] - 2018-07-31
 
