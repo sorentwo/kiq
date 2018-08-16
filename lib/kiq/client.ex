@@ -227,12 +227,14 @@ defmodule Kiq.Client do
     info = Heartbeat.encode(heartbeat)
 
     commands = [
+      ["MULTI"],
       ["SADD", "processes", key],
       ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
       ["EXPIRE", key, 60],
       ["DEL", wkey],
       ["HMSET" | [wkey | Enum.flat_map(running, &worker_detail/1)]],
-      ["EXPIRE", wkey, 60]
+      ["EXPIRE", wkey, 60],
+      ["EXEC"]
     ]
 
     {:ok, _result} = Redix.pipeline(conn, commands)

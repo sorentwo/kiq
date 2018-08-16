@@ -100,7 +100,7 @@ defmodule Kiq.Job do
 
   During the encoding process any keys with `nil` values are removed.
   """
-  @spec encode(job :: t()) :: binary() | no_return()
+  @spec encode(job :: t(), opts :: Keyword.t()) :: binary() | map()
   def encode(%__MODULE__{} = job, opts \\ []) do
     prepared =
       job
@@ -128,7 +128,7 @@ defmodule Kiq.Job do
       ...> Map.get(job, :args)
       %{a: 1}
   """
-  @spec decode(input :: binary()) :: t() | no_return()
+  @spec decode(input :: binary()) :: t()
   def decode(input) when is_binary(input) do
     input
     |> Jason.decode!(keys: :atoms)

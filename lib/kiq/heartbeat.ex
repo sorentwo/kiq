@@ -70,7 +70,7 @@ defmodule Kiq.Heartbeat do
   end
 
   @doc false
-  @spec encode(heartbeat :: t()) :: binary() | no_return()
+  @spec encode(heartbeat :: t()) :: binary()
   def encode(%Heartbeat{} = heartbeat) do
     heartbeat
     |> Map.take([:concurrency, :hostname, :identity, :labels, :pid, :queues, :started_at, :tag])
