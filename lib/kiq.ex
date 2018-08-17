@@ -64,7 +64,7 @@ defmodule Kiq do
 
       @impl Kiq
       def init(_reason, opts) do
-        for_env = Application.get_env(:my_app, :kiq)
+        for_env = Application.get_env(:my_app, :kiq, [])
 
         opts =
           opts
