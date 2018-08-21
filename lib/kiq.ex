@@ -89,6 +89,11 @@ defmodule Kiq do
     exports: 5, media: 5]` would start the queues `default`, `exports` and
     `media` with a combined concurrency of 20. The concurrency setting
     specifies how many jobs _each queue_ will run concurrently.
+  * `schedulers` — A list of schedulers to run. The default schedulers are
+    "retry" which is used to retry failed jobs with a backoff and "schedule",
+    used to enqueue jobs at a specific time in the future. Set this to an empty
+    list to disable all schedulers and allow Sidekiq to handle enqueuing
+    retries and scheduled jobs.
   * `server?` — Whether to start the queue supervisors and start processing
     jobs or only start the client. This setting is useful for testing or
     deploying your application's web and workers separately.
