@@ -14,14 +14,6 @@ defmodule Kiq.HeartbeatTest do
       assert heartbeat.quiet
       assert is_float(heartbeat.started_at)
     end
-
-    test "the DYNO environment variable is used for hostname when present" do
-      System.put_env("DYNO", "worker-123")
-
-      assert %Heartbeat{hostname: "worker-123"} = Heartbeat.new(%{queues: []})
-    after
-      System.delete_env("DYNO")
-    end
   end
 
   describe "encode/1" do

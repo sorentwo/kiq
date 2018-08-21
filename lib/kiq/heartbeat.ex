@@ -1,6 +1,8 @@
 defmodule Kiq.Heartbeat do
   @moduledoc false
 
+  import Kiq.Identity, only: [hostname: 0, identity: 0, pid: 0]
+
   alias Kiq.{Job, Timestamp}
 
   alias __MODULE__
@@ -37,11 +39,11 @@ defmodule Kiq.Heartbeat do
       args
       |> Map.put(:busy, busy(args))
       |> Map.put(:concurrency, concurrency(args))
-      |> Map.put(:hostname, hostname())
-      |> Map.put(:identity, identity())
-      |> Map.put(:pid, pid())
       |> Map.put(:queues, queues(args))
       |> Map.put(:started_at, Timestamp.unix_now())
+      |> Map.put_new(:hostname, hostname())
+      |> Map.put_new(:identity, identity())
+      |> Map.put_new(:pid, pid())
 
     struct!(Heartbeat, args)
   end
@@ -101,19 +103,5 @@ defmodule Kiq.Heartbeat do
 
   defp queues(_args) do
     []
-  end
-
-  defp pid do
-    "~p"
-    |> :io_lib.format([self()])
-    |> to_string()
-  end
-
-  defp hostname do
-    System.get_env("DYNO") || to_string(:inet.gethostname() |> elem(1))
-  end
-
-  defp identity do
-    "#{hostname()}:#{pid()}"
   end
 end
