@@ -3,7 +3,7 @@ defmodule Kiq.Heartbeat do
 
   import Kiq.Identity, only: [hostname: 0, identity: 0, pid: 0]
 
-  alias Kiq.{Job, Timestamp}
+  alias Kiq.{Job, RunningJob, Timestamp}
 
   alias __MODULE__
 
@@ -45,7 +45,7 @@ defmodule Kiq.Heartbeat do
       |> Map.put_new(:identity, identity())
       |> Map.put_new(:pid, pid())
 
-    struct!(Heartbeat, args)
+    struct!(__MODULE__, args)
   end
 
   def new(args) when is_list(args) do
@@ -57,15 +57,15 @@ defmodule Kiq.Heartbeat do
 
   @doc false
   @spec add_running(heartbeat :: t(), job :: Job.t()) :: t()
-  def add_running(%Heartbeat{running: running} = heartbeat, %Job{jid: jid} = job) do
-    running = Map.put_new(running, jid, job)
+  def add_running(%__MODULE__{running: running} = heartbeat, %Job{jid: jid} = job) do
+    running = Map.put_new(running, jid, RunningJob.new(job))
 
     %Heartbeat{heartbeat | busy: map_size(running), running: running}
   end
 
   @doc false
   @spec rem_running(heartbeat :: t(), job :: Job.t()) :: t()
-  def rem_running(%Heartbeat{running: running} = heartbeat, %Job{jid: jid}) do
+  def rem_running(%__MODULE__{running: running} = heartbeat, %Job{jid: jid}) do
     running = Map.delete(running, jid)
 
     %Heartbeat{heartbeat | busy: map_size(running), running: running}
@@ -73,7 +73,7 @@ defmodule Kiq.Heartbeat do
 
   @doc false
   @spec encode(heartbeat :: t()) :: binary()
-  def encode(%Heartbeat{} = heartbeat) do
+  def encode(%__MODULE__{} = heartbeat) do
     heartbeat
     |> Map.take([:concurrency, :hostname, :identity, :labels, :pid, :queues, :started_at, :tag])
     |> Jason.encode!()

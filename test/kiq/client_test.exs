@@ -132,7 +132,7 @@ defmodule Kiq.ClientTest do
 
   describe "record_heart/2" do
     test "heartbeat process information is updated", %{client: client, redis: redis} do
-      running = %{"jid1" => job(pid: make_ref()), "jid2" => job(pid: make_ref())}
+      running = %{"jid1" => running_job(), "jid2" => running_job()}
 
       %Heartbeat{identity: identity} = heartbeat = Heartbeat.new(running: running)
 

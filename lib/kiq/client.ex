@@ -3,7 +3,7 @@ defmodule Kiq.Client do
 
   use GenServer
 
-  alias Kiq.{Config, Heartbeat, Job, Timestamp}
+  alias Kiq.{Config, Heartbeat, Job, RunningJob, Timestamp}
 
   @type client :: GenServer.server()
   @type queue :: binary() | atom()
@@ -232,7 +232,7 @@ defmodule Kiq.Client do
       ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
       ["EXPIRE", key, 60],
       ["DEL", wkey],
-      ["HMSET" | [wkey | Enum.flat_map(running, &worker_detail/1)]],
+      ["HMSET" | [wkey | Enum.flat_map(running, &running_detail/1)]],
       ["EXPIRE", wkey, 60],
       ["EXEC"]
     ]
@@ -288,11 +288,5 @@ defmodule Kiq.Client do
     {:ok, job}
   end
 
-  defp worker_detail({_jid, %Job{pid: pid, queue: queue} = job}) do
-    job_key = to_string(:io_lib.format("~p", [pid]))
-    payload = Job.encode(job, native: true)
-    details = %{queue: queue, payload: payload, run_at: Timestamp.unix_now()}
-
-    [job_key, Jason.encode!(details)]
-  end
+  defp running_detail({_jid, %RunningJob{key: key, encoded: encoded}}), do: [key, encoded]
 end

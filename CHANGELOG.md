@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Correctly serialize pid and job payloads when recording a worker's running
   jobs for heartbeats. Incorrectly formatted hashes in Redis will cause the
   Sidekiq "busy" dashboard to crash.
+- Retain the original `ran_at` value for reported jobs. Running jobs are now
+  encoded when they are started, preventing repeated JSON encodings and allowing
+  the initial `ran_at` value to be used when reporting. Prior to this change
+  the job was always reported as being started "Just Now".
 
 ## [0.1.0] - 2018-07-31
 

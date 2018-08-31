@@ -78,7 +78,7 @@ end
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 
-  alias Kiq.Job
+  alias Kiq.{Job, RunningJob}
 
   using do
     quote do
@@ -96,6 +96,13 @@ defmodule Kiq.Case do
     args
     |> job()
     |> Job.encode()
+  end
+
+  def running_job(args \\ []) do
+    args
+    |> Keyword.put_new(:pid, make_ref())
+    |> job()
+    |> RunningJob.new()
   end
 
   def redis_url do

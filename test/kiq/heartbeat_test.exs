@@ -33,8 +33,8 @@ defmodule Kiq.HeartbeatTest do
 
   describe "add_running/2" do
     test "jobs are added to the running set" do
-      job_a = job()
-      job_b = job()
+      job_a = job(pid: make_ref())
+      job_b = job(pid: make_ref())
 
       heartbeat =
         []
@@ -44,13 +44,14 @@ defmodule Kiq.HeartbeatTest do
         |> Heartbeat.add_running(job_b)
 
       assert heartbeat.busy == 2
+      assert map_size(heartbeat.running) == 2
     end
   end
 
   describe "rem_running/2" do
     test "jobs are removed from the running set" do
-      job_a = job()
-      job_b = job()
+      job_a = job(pid: make_ref())
+      job_b = job(pid: make_ref())
 
       heartbeat =
         []
@@ -60,6 +61,7 @@ defmodule Kiq.HeartbeatTest do
         |> Heartbeat.rem_running(job_a)
 
       assert heartbeat.busy == 1
+      assert map_size(heartbeat.running) == 1
     end
   end
 end

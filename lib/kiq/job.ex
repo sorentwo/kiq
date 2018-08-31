@@ -96,20 +96,27 @@ defmodule Kiq.Job do
   end
 
   @doc """
+  Convert a job into a map suitable for encoding.
+  """
+  @spec to_map(job :: t()) :: map()
+  def to_map(%__MODULE__{} = job) do
+    job
+    |> Map.from_struct()
+    |> Map.drop([:pid])
+    |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+    |> Enum.into(%{})
+  end
+
+  @doc """
   Encode a job as JSON.
 
   During the encoding process any keys with `nil` values are removed.
   """
-  @spec encode(job :: t(), opts :: Keyword.t()) :: binary() | map()
-  def encode(%__MODULE__{} = job, opts \\ []) do
-    prepared =
-      job
-      |> Map.from_struct()
-      |> Map.drop([:pid])
-      |> Enum.reject(fn {_key, val} -> is_nil(val) end)
-      |> Enum.into(%{})
-
-    if opts[:native], do: prepared, else: Jason.encode!(prepared)
+  @spec encode(job :: t()) :: binary()
+  def encode(%__MODULE__{} = job) do
+    job
+    |> to_map()
+    |> Jason.encode!()
   end
 
   @doc """

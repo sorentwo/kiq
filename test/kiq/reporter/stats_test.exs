@@ -20,7 +20,7 @@ defmodule Kiq.Reporter.StatsTest do
   end
 
   test "stats for in-process jobs are recorded" do
-    :ok = emit_event({:started, job()})
+    :ok = emit_event({:started, job(pid: make_ref())})
 
     assert_receive {:record_heart, %Heartbeat{identity: "ident:123", busy: 1}}
   end
@@ -38,7 +38,7 @@ defmodule Kiq.Reporter.StatsTest do
   end
 
   test "stats for completed jobs are recorded" do
-    :ok = emit_event({:stopped, job()})
+    :ok = emit_event({:stopped, job(pid: make_ref())})
 
     assert_receive {:record_heart, %Heartbeat{identity: "ident:123", busy: 0}}
   end
