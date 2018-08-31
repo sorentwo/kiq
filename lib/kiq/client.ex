@@ -224,7 +224,7 @@ defmodule Kiq.Client do
 
     wkey = "#{key}:workers"
     beat = Timestamp.unix_now()
-    info = Heartbeat.encode(heartbeat)
+    info = Jason.encode!(heartbeat)
 
     commands = [
       ["MULTI"],

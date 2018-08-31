@@ -20,6 +20,9 @@ defmodule Kiq.Heartbeat do
           tag: binary()
         }
 
+  @derive {Jason.Encoder,
+           only: [:concurrency, :hostname, :identity, :labels, :pid, :queues, :started_at, :tag]}
+
   defstruct busy: 0,
             concurrency: 0,
             identity: nil,
@@ -69,14 +72,6 @@ defmodule Kiq.Heartbeat do
     running = Map.delete(running, jid)
 
     %Heartbeat{heartbeat | busy: map_size(running), running: running}
-  end
-
-  @doc false
-  @spec encode(heartbeat :: t()) :: binary()
-  def encode(%__MODULE__{} = heartbeat) do
-    heartbeat
-    |> Map.take([:concurrency, :hostname, :identity, :labels, :pid, :queues, :started_at, :tag])
-    |> Jason.encode!()
   end
 
   ## Helpers

@@ -17,13 +17,13 @@ defmodule Kiq.HeartbeatTest do
   end
 
   describe "encode/1" do
-    test "it encodes JSON compatible with sidekiq stats reporting" do
+    test "it specifies JSON compatible with sidekiq stats reporting" do
       running = %{"jobid" => %{payload: job()}}
 
       decoded =
         %{queues: [default: 5, special: 5], running: running}
         |> Heartbeat.new()
-        |> Heartbeat.encode()
+        |> Jason.encode!()
         |> Jason.decode!(keys: :atoms)
 
       assert %{concurrency: 10, hostname: _, identity: _, pid: _} = decoded
