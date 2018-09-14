@@ -13,7 +13,7 @@ before_script:
   - travis_wait mix dialyzer --plt
 script:
   - mix format --check-formatted
-  - mix credo
+  - mix credo --ignore consistency
   - mix dialyzer
   - mix test
 services:
