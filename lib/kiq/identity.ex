@@ -1,7 +1,7 @@
 defmodule Kiq.Identity do
   @moduledoc false
 
-  @spec identity(env :: map()) :: binary()
+  @spec identity(env :: map()) :: <<_::16, _::_*8>>
   def identity(env \\ System.get_env()) do
     "#{hostname(env)}:#{pid()}:#{nonce()}"
   end
