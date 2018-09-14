@@ -5,6 +5,12 @@ defmodule Kiq.JobTest do
 
   doctest Job
 
+  defp encode(args) do
+    args
+    |> job()
+    |> Job.encode()
+  end
+
   describe "encode/1" do
     test "transient and nil values are omitted" do
       decoded =
@@ -19,6 +25,11 @@ defmodule Kiq.JobTest do
       assert decoded.class
       refute decoded.pid
       refute decoded.failed_at
+    end
+
+    test "retry_count values are only retained when greater than 0" do
+      refute encode(retry_count: 0) =~ "retry_count"
+      assert encode(retry_count: 1) =~ "retry_count"
     end
   end
 end

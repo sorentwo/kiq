@@ -97,6 +97,9 @@ defmodule Kiq.Job do
 
   @doc """
   Convert a job into a map suitable for encoding.
+
+  For Sidekiq compatibility and encodeability some values are rejected.
+  Specifically, the `retry_count` value is dropped when it is 0.
   """
   @spec to_map(job :: t()) :: map()
   def to_map(%__MODULE__{} = job) do
@@ -104,6 +107,7 @@ defmodule Kiq.Job do
     |> Map.from_struct()
     |> Map.drop([:pid])
     |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+    |> Enum.reject(fn {key, val} -> key == :retry_count and val == 0 end)
     |> Enum.into(%{})
   end
 

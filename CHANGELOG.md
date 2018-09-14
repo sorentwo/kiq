@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   encoded when they are started, preventing repeated JSON encodings and allowing
   the initial `ran_at` value to be used when reporting. Prior to this change
   the job was always reported as being started "Just Now".
+- Skip serializing `retry_count` when the value is 0. Sidekiq doesn't include a
+  `retry_count` when there hasn't been a retry, which prevents the job
+  serialized by Kiq from matching up. If the serialized job doesn't match up
+  then the job can't be removed from the backup queue, leading to a buildup of
+  duplicate jobs.
 
 ## [0.1.0] - 2018-07-31
 
