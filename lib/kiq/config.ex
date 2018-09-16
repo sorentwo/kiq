@@ -3,6 +3,9 @@ defmodule Kiq.Config do
 
   import Kiq.Identity, only: [identity: 0]
 
+  alias Kiq.{Client, Reporter}
+  alias Kiq.Reporter.{Logger, Retryer, Stats, Unlocker}
+
   @type queue_name :: atom() | binary()
   @type queue_size :: pos_integer()
   @type queue_config :: {queue_name(), queue_size()}
@@ -20,14 +23,14 @@ defmodule Kiq.Config do
           server?: boolean()
         }
 
-  defstruct client: Kiq.Client,
-            client_name: Kiq.Client,
+  defstruct client: Client,
+            client_name: Client,
             client_opts: [],
             extra_reporters: [],
             queues: [default: 25],
             identity: nil,
-            reporter_name: Kiq.Reporter,
-            reporters: [Kiq.Reporter.Logger, Kiq.Reporter.Retryer, Kiq.Reporter.Stats],
+            reporter_name: Reporter,
+            reporters: [Logger, Retryer, Stats, Unlocker],
             schedulers: ~w(retry schedule),
             server?: true
 

@@ -96,6 +96,12 @@ defmodule Kiq.Client do
     GenServer.call(client, {:remove_backup, job})
   end
 
+  @doc false
+  @spec unlock_job(client(), Job.t()) :: :ok
+  def unlock_job(client, %Job{} = job) do
+    GenServer.call(client, {:unlock_job, job})
+  end
+
   ## Stats
 
   @doc false
@@ -224,6 +230,12 @@ defmodule Kiq.Client do
     {:reply, :ok, state}
   end
 
+  def handle_call({:unlock_job, %Job{unique_token: token}}, _from, %State{conn: conn} = state) do
+    {:ok, _result} = Redix.command(conn, ["DEL", unlock_name(token)])
+
+    {:reply, :ok, state}
+  end
+
   ## Stats
 
   def handle_call({:record_heart, heartbeat}, _from, %State{conn: conn} = state) do
@@ -282,13 +294,15 @@ defmodule Kiq.Client do
 
   defp backup_name(queue), do: "queue:#{queue}:backup"
 
+  defp unlock_name(token), do: "unique:#{token}"
+
   defp check_unique(%Job{unique_for: unique_for} = job, conn) when is_integer(unique_for) do
     now = Timestamp.unix_now()
     unlocks_at = (job.at || now) + unique_for / 1_000.0
     expires_in = trunc((unlocks_at - now) * 1_000)
     unique_key = Job.unique_key(job)
 
-    command = ["SET", "unique:#{unique_key}", unlocks_at, "PX", expires_in, "NX"]
+    command = ["SET", unlock_name(unique_key), unlocks_at, "PX", expires_in, "NX"]
 
     case Redix.command(conn, command) do
       {:ok, "OK"} ->

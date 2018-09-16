@@ -159,6 +159,19 @@ defmodule Kiq.ClientTest do
     end
   end
 
+  describe "unlock_job/2" do
+    test "jobs with unique tokens are removed", %{client: client, redis: redis} do
+      token = "asdfghjklzxcvbnmqwertyuiop"
+      job = job(unique_token: token)
+
+      assert {:ok, "OK"} = Redix.command(redis, ["SET", "unique:#{token}", Timestamp.unix_now()])
+
+      assert :ok = Client.unlock_job(client, job)
+
+      assert {:ok, nil} = Redix.command(redis, ["GET", "unique:#{token}"])
+    end
+  end
+
   describe "record_heart/2" do
     test "heartbeat process information is updated", %{client: client, redis: redis} do
       running = %{"jid1" => running_job(), "jid2" => running_job()}
