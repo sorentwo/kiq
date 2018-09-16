@@ -57,7 +57,8 @@ defmodule Kiq.MixProject do
       {:redix, "~> 0.7"},
       {:credo, "~> 0.10", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false}
+      {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false},
+      {:stream_data, "~> 0.1", only: [:test]}
     ]
   end
 end

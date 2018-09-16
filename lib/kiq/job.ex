@@ -165,4 +165,19 @@ defmodule Kiq.Job do
     |> :crypto.strong_rand_bytes()
     |> Base.encode16(case: :lower)
   end
+
+  @doc """
+  Calculate the unique key from a job's args, class and queue.
+  """
+  @spec unique_key(job :: t()) :: binary()
+  def unique_key(%__MODULE__{args: args, class: class, queue: queue}) do
+    [class, queue, args]
+    |> Enum.map(&inspect/1)
+    |> Enum.join("|")
+    |> sha_hash()
+    |> Base.encode16()
+    |> String.downcase()
+  end
+
+  defp sha_hash(value), do: :crypto.hash(:sha, value)
 end
