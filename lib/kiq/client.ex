@@ -131,15 +131,21 @@ defmodule Kiq.Client do
 
   @impl GenServer
   def handle_call({:enqueue, job}, _from, %State{conn: conn} = state) do
-    {:reply, push_job(conn, job), state}
+    with {:ok, job} <- check_unique(job, conn),
+         {:ok, job} <- push_job(job, conn) do
+      {:reply, {:ok, job}, state}
+    else
+      {:locked, job} -> {:reply, {:ok, job}, state}
+    end
   end
 
   def handle_call({:enqueue_at, job, set}, _from, %State{conn: conn} = state) do
-    score = Timestamp.to_score(job.at)
-
-    {:ok, _result} = Redix.command(conn, ["ZADD", set, score, Job.encode(job)])
-
-    {:reply, {:ok, job}, state}
+    with {:ok, job} <- check_unique(job, conn),
+         {:ok, job} <- schedule_job(job, conn, set) do
+      {:reply, {:ok, job}, state}
+    else
+      {:locked, job} -> {:reply, {:ok, job}, state}
+    end
   end
 
   def handle_call({:dequeue, _queue, 0}, _from, state) do
@@ -164,7 +170,7 @@ defmodule Kiq.Client do
       |> Enum.zip(rem_counts)
       |> Enum.filter(fn {_job, count} -> count > 0 end)
       |> Enum.map(fn {job, _count} -> Job.decode(job) end)
-      |> Enum.each(&push_job(conn, &1))
+      |> Enum.each(&push_job(&1, conn))
     end
 
     {:reply, :ok, state}
@@ -206,7 +212,8 @@ defmodule Kiq.Client do
 
   def handle_call(:clear, _from, %State{conn: conn} = state) do
     {:ok, queues} = Redix.command(conn, ["KEYS", "queue*"])
-    {:ok, _reply} = Redix.command(conn, ["DEL", @retry_set, @schedule_set | queues])
+    {:ok, unique} = Redix.command(conn, ["KEYS", "unique:*"])
+    {:ok, _reply} = Redix.command(conn, ["DEL" | [@retry_set, @schedule_set] ++ queues ++ unique])
 
     {:reply, :ok, state}
   end
@@ -275,7 +282,26 @@ defmodule Kiq.Client do
 
   defp backup_name(queue), do: "queue:#{queue}:backup"
 
-  defp push_job(conn, %Job{queue: queue} = job) do
+  defp check_unique(%Job{unique_for: unique_for} = job, conn) when is_integer(unique_for) do
+    now = Timestamp.unix_now()
+    unlocks_at = (job.at || now) + unique_for / 1_000.0
+    expires_in = trunc((unlocks_at - now) * 1_000)
+    unique_key = Job.unique_key(job)
+
+    command = ["SET", "unique:#{unique_key}", unlocks_at, "PX", expires_in, "NX"]
+
+    case Redix.command(conn, command) do
+      {:ok, "OK"} ->
+        {:ok, %Job{job | unique_token: unique_key, unlocks_at: unlocks_at}}
+
+      {:ok, _result} ->
+        {:locked, job}
+    end
+  end
+
+  defp check_unique(job, _client), do: {:ok, job}
+
+  defp push_job(%Job{queue: queue} = job, conn) do
     job = %Job{job | enqueued_at: Timestamp.unix_now()}
 
     commands = [
@@ -284,6 +310,14 @@ defmodule Kiq.Client do
     ]
 
     {:ok, _result} = Redix.pipeline(conn, commands)
+
+    {:ok, job}
+  end
+
+  defp schedule_job(%Job{at: at} = job, conn, set) do
+    score = Timestamp.to_score(at)
+
+    {:ok, _result} = Redix.command(conn, ["ZADD", set, score, Job.encode(job)])
 
     {:ok, job}
   end

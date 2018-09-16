@@ -20,7 +20,12 @@ defmodule Kiq.Job do
   * `error_message` — The message from the last exception
   * `error_class` — The exception module (or class, in Sidekiq terms)
   * `backtrace` - The number of lines of error backtrace to store, defaults to none
-  * `unique_for` - How long uniqueness will be enforced for a job
+
+  Unique Fields:
+
+  * `unique_for` - How long uniqueness will be enforced for a job, in milliseconds
+  * `unlocks_at` - When the job will be unlocked, in milliseconds
+  * `unique_token` - The uniqueness token calculated from class, queue and args
 
   [1]: https://github.com/mperham/sidekiq/wiki/Job-Format
   """
@@ -42,7 +47,9 @@ defmodule Kiq.Job do
           retried_at: Timestamp.t(),
           error_message: binary(),
           error_class: binary(),
-          unique_for: non_neg_integer()
+          unique_for: non_neg_integer(),
+          unlocks_at: Timestamp.t(),
+          unique_token: binary()
         }
 
   @enforce_keys ~w(jid class)a
@@ -60,7 +67,9 @@ defmodule Kiq.Job do
             retried_at: nil,
             error_message: nil,
             error_class: nil,
-            unique_for: nil
+            unique_for: nil,
+            unlocks_at: nil,
+            unique_token: nil
 
   @doc """
   Build a new `Job` struct with all dynamic arguments populated.
@@ -173,10 +182,8 @@ defmodule Kiq.Job do
   def unique_key(%__MODULE__{args: args, class: class, queue: queue}) do
     [class, queue, args]
     |> Enum.map(&inspect/1)
-    |> Enum.join("|")
     |> sha_hash()
-    |> Base.encode16()
-    |> String.downcase()
+    |> Base.encode16(case: :lower)
   end
 
   defp sha_hash(value), do: :crypto.hash(:sha, value)
