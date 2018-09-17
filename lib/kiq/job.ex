@@ -10,20 +10,27 @@ defmodule Kiq.Job do
   * `class` - The worker class which is responsible for executing the job
   * `args` - The arguments passed which should be passed to the worker
   * `queue` - The queue where a job should be enqueued, defaults to "default"
-  * `retry` - Tells the Kiq worker to retry the enqueue job
-  * `retry_count` - The number of times we've retried so far
   * `at` — A time at or after which a scheduled job should be performed, in Unix format
   * `created_at` - When the job was created, in Unix format
   * `enqueue_at` - When the job was enqueued, in Unix format
+
+  Retry & Failure Fields:
+
+  * `retry` - Tells the Kiq worker to retry the enqueue job
+  * `retry_count` - The number of times we've retried so far
   * `failed_at` - The first time the job failed, in Unix format
   * `retried_at` — The last time the job was retried, in Unix format
   * `error_message` — The message from the last exception
   * `error_class` — The exception module (or class, in Sidekiq terms)
-  * `backtrace` - The number of lines of error backtrace to store, defaults to none
+  * `backtrace` - The number of lines of error backtrace to store. Only present
+    for compatibility with Sidekiq, this field is ignored.
 
   Unique Fields:
 
-  * `unique_for` - How long uniqueness will be enforced for a job, in milliseconds
+  * `unique_for` - How long uniqueness will be enforced for a job, in
+    milliseconds
+  * `unique_until` - Allows controlling when a unique lock will be removed,
+    valid options are "start" and "success".
   * `unlocks_at` - When the job will be unlocked, in milliseconds
   * `unique_token` - The uniqueness token calculated from class, queue and args
 
@@ -48,8 +55,9 @@ defmodule Kiq.Job do
           error_message: binary(),
           error_class: binary(),
           unique_for: non_neg_integer(),
-          unlocks_at: Timestamp.t(),
-          unique_token: binary()
+          unique_until: binary(),
+          unique_token: binary(),
+          unlocks_at: Timestamp.t()
         }
 
   @enforce_keys ~w(jid class)a
@@ -68,8 +76,9 @@ defmodule Kiq.Job do
             error_message: nil,
             error_class: nil,
             unique_for: nil,
-            unlocks_at: nil,
-            unique_token: nil
+            unique_token: nil,
+            unique_until: nil,
+            unlocks_at: nil
 
   @doc """
   Build a new `Job` struct with all dynamic arguments populated.
@@ -77,8 +86,22 @@ defmodule Kiq.Job do
       iex> Kiq.Job.new(%{class: "Worker"}) |> Map.take([:class, :args, :queue])
       %{class: "Worker", args: [], queue: "default"}
 
-      iex> Kiq.Job.new(module: "Worker") |> Map.get(:class)
+  To fit more naturally with Elixir the `class` argument can be passed as `module`:
+
+      iex> Kiq.Job.new(module: "Worker").class
       "Worker"
+
+  Only "start" and "success" are allowed as values for `unique_until`. Any
+  other value will be nullified:
+
+      iex> Kiq.Job.new(class: "A", unique_until: "start").unique_until
+      "start"
+
+      iex> Kiq.Job.new(class: "A", unique_until: :start).unique_until
+      "start"
+
+      iex> Kiq.Job.new(class: "A", unique_until: "whenever").unique_until
+      nil
   """
   @spec new(args :: map() | Keyword.t()) :: t()
   def new(%{class: class} = args) do
@@ -87,6 +110,7 @@ defmodule Kiq.Job do
       |> Map.put(:class, to_string(class))
       |> Map.put_new(:jid, random_jid())
       |> Map.put_new(:created_at, Timestamp.unix_now())
+      |> coerce_unique_until()
 
     struct!(__MODULE__, args)
   end
@@ -185,6 +209,13 @@ defmodule Kiq.Job do
     |> sha_hash()
     |> Base.encode16(case: :lower)
   end
+
+  # Helpers
+
+  defp coerce_unique_until(%{unique_until: :start} = map), do: %{map | unique_until: "start"}
+  defp coerce_unique_until(%{unique_until: "start"} = map), do: map
+  defp coerce_unique_until(%{unique_until: _} = map), do: %{map | unique_until: nil}
+  defp coerce_unique_until(map), do: map
 
   defp sha_hash(value), do: :crypto.hash(:sha, value)
 end

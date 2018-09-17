@@ -21,9 +21,23 @@ defmodule Kiq.Reporter.Unlocker do
   end
 
   @impl Reporter
-  def handle_success(%Job{unique_token: token} = job, _meta, state) when is_binary(token) do
+  def handle_started(job, state) do
+    maybe_unlock(job, "start", state)
+  end
+
+  @impl Reporter
+  def handle_success(%Job{unique_until: until} = job, _meta, state) do
+    maybe_unlock(%Job{job | unique_until: until || "success"}, "success", state)
+  end
+
+  # Helpers
+
+  defp maybe_unlock(%Job{unique_token: token, unique_until: until} = job, until, state)
+       when is_binary(token) do
     :ok = Client.unlock_job(state.client, job)
 
     state
   end
+
+  defp maybe_unlock(_job, _until, state), do: state
 end

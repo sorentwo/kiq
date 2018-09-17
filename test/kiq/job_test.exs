@@ -6,12 +6,6 @@ defmodule Kiq.JobTest do
 
   doctest Job
 
-  defp encode(args) do
-    args
-    |> job()
-    |> Job.encode()
-  end
-
   describe "encode/1" do
     test "transient and nil values are omitted" do
       decoded =
@@ -44,5 +38,11 @@ defmodule Kiq.JobTest do
         assert Job.unique_key(job) =~ ~r/\A[a-z0-9]{40}\z/
       end
     end
+  end
+
+  defp encode(args) do
+    args
+    |> job()
+    |> Job.encode()
   end
 end
