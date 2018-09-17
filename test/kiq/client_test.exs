@@ -71,6 +71,35 @@ defmodule Kiq.ClientTest do
       assert 0 == Client.queue_size(client, @queue)
       assert 1 == Client.set_size(client, @retry_set)
     end
+
+    test "jobs with a unique_for value have a locked_key value", %{client: client, redis: redis} do
+      job = job(unique_for: :timer.seconds(5))
+
+      assert {:ok, %Job{unlocks_at: unlock, unique_token: token}} = Client.enqueue(client, job)
+      assert {:ok, value} = Redix.command(redis, ["GET", "unique:#{token}"])
+
+      assert_in_delta unlock, Timestamp.unix_in(5), 0.1
+      assert token =~ ~r/[a-z0-9]+/
+      assert value == to_string(unlock)
+    end
+
+    test "existing unique jobs aren't enqueued again", %{client: client} do
+      job_a = job(unique_for: :timer.seconds(2))
+      job_b = job(unique_for: :timer.seconds(4))
+
+      assert {:ok, %Job{unique_token: token}} = Client.enqueue(client, job_a)
+      assert {:ok, %Job{unique_token: nil}} = Client.enqueue(client, job_b)
+
+      assert 1 == Client.queue_size(client, @queue)
+    end
+
+    test "uniqueness lasts until after a job is scheduled", %{client: client} do
+      job = job(at: Timestamp.unix_in(60), unique_for: :timer.seconds(5))
+
+      assert {:ok, %Job{unlocks_at: unlock}} = Client.enqueue(client, job)
+
+      assert_in_delta unlock, Timestamp.unix_in(65), 0.1
+    end
   end
 
   describe "dequeue/3" do
@@ -127,6 +156,19 @@ defmodule Kiq.ClientTest do
 
       assert :ok = Client.remove_backup(client, job_b)
       assert {:ok, 0} = Redix.command(redis, ["LLEN", @backup_list])
+    end
+  end
+
+  describe "unlock_job/2" do
+    test "jobs with unique tokens are removed", %{client: client, redis: redis} do
+      token = "asdfghjklzxcvbnmqwertyuiop"
+      job = job(unique_token: token)
+
+      assert {:ok, "OK"} = Redix.command(redis, ["SET", "unique:#{token}", Timestamp.unix_now()])
+
+      assert :ok = Client.unlock_job(client, job)
+
+      assert {:ok, nil} = Redix.command(redis, ["GET", "unique:#{token}"])
     end
   end
 

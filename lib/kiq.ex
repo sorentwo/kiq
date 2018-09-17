@@ -98,11 +98,43 @@ defmodule Kiq do
     jobs or only start the client. This setting is useful for testing or
     deploying your application's web and workers separately.
 
-  TODO: Workers
+  ## Unique Jobs
 
-  TODO: Testing
+  Kiq supports Sidekiq Enterprise's [unique jobs][uniq]. This feature prevents
+  enqueueing duplicate jobs while an original job is still pending. The
+  operations that attempt to enforce uniqueness are _not_ atomic—uniquess is
+  not guaranteed and should be considered best effort.
 
-  TODO: Error Handling
+  Enable unique jobs for a worker by setting a unique time period:
+
+      defmodule MyApp.Worker do
+        use Kiq.Worker, unique_for: :timer.minutes(5)
+      end
+
+  ### Unlock Policy
+
+  By default unique jobs will hold the unique lock until the job has ran
+  successfully. This policy ensures that jobs will remain locked if there are
+  any errors, but it is prone to race conditions in certain situations for
+  longer running jobs.
+
+  Generally it is best to stick with the default `:success` policy. However, if
+  your job is effected by the race condition you can change your worker's
+  policy:
+
+      use Kiq.Worker, unique_for: :timer.minutes(60), unique_until: :start
+
+  ### Caveats
+
+  * Note that job uniqueness is calculated from the `class`, `args`, and
+    `queue`. This means that jobs with identical args may be added to different
+    queues.
+  * Unique jobs enqueued by Sidekiq will be unlocked by Kiq, but they may not
+    use the same lock value. This is due to differences between hashing Erlang
+    terms and Ruby objects. To help ensure uniqueness always enqueue unique jobs
+    from either Sidekiq or Kiq.
+
+  [uniq]: https://github.com/mperham/sidekiq/wiki/Ent-Unique-Jobs
   """
 
   alias Kiq.{Client, Job, Timestamp}

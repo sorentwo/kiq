@@ -21,6 +21,7 @@ defmodule Kiq.TimestampTest do
       offset = Timestamp.unix_in(1, :seconds)
 
       assert offset > now
+      assert_in_delta offset, now, 1.5
     end
   end
 
