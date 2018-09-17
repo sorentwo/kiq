@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Unique Job support. Workers, and their corresponding jobs, can now be made
+  unique within for a period of time. Until the initial job has succeeded it is
+  considered "locked" and all subsequent attempts to enqueue a job with the same
+  class, queue and args will be ignored. The unique period is specified with the
+  `unique_for` option, which accepts millisecond values for easy interaction
+  with the `:timer` module's `minutes/1` and `seconds/1` functions.
+
 ### Fixed
 
 - Correctly convert nested modules binaries into the correct worker, i.e.

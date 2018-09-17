@@ -1,7 +1,7 @@
 defmodule Kiq.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
 
   @repo_url "https://github.com/sorentwo/kiq"
 
@@ -58,7 +58,7 @@ defmodule Kiq.MixProject do
       {:credo, "~> 0.10", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false},
-      {:stream_data, "~> 0.1", only: [:test]}
+      {:stream_data, "~> 0.4", only: [:test]}
     ]
   end
 end
