@@ -44,7 +44,7 @@ level marquee features that Kiq aims to support:
 * [x] Reliable job fetching to prevent ever losing jobs before they are
   processed
 * [ ] Reliable job pushing in the event of network disconnection
-* [ ] Unique job support, prevent enqueuing duplicate jobs within a period of time
+* [x] Unique job support, prevent enqueuing duplicate jobs within a period of time
 * [ ] Batch job support, monitor a collection of jobs as a group and execute
   callbacks when all jobs are complete
 * [ ] Periodic job support, schedule jobs to be enqueued automatically on a
