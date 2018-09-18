@@ -139,6 +139,11 @@ defmodule Kiq.Job do
 
   @doc """
   Extract a fully qualified worker module from a job.
+
+  # Examples
+
+      iex> Kiq.Job.to_module(Kiq.Job.new(module: "Kiq.Job"))
+      Kiq.Job
   """
   @spec to_module(job :: t()) :: module()
   def to_module(%__MODULE__{class: class}) do
