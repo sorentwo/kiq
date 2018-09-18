@@ -25,6 +25,11 @@ defmodule Kiq.Job do
   * `backtrace` - The number of lines of error backtrace to store. Only present
     for compatibility with Sidekiq, this field is ignored.
 
+  Epiration Fields:
+
+  * `expires_in` - How long to keep a job before expiring it and skipping
+    execution, in milliseconds
+
   Unique Fields:
 
   * `unique_for` - How long uniqueness will be enforced for a job, in
@@ -54,7 +59,9 @@ defmodule Kiq.Job do
           retried_at: Timestamp.t(),
           error_message: binary(),
           error_class: binary(),
-          unique_for: non_neg_integer(),
+          expires_in: pos_integer(),
+          expires_at: Timestamp.t(),
+          unique_for: pos_integer(),
           unique_until: binary(),
           unique_token: binary(),
           unlocks_at: Timestamp.t()
@@ -75,6 +82,8 @@ defmodule Kiq.Job do
             retried_at: nil,
             error_message: nil,
             error_class: nil,
+            expires_in: nil,
+            expires_at: nil,
             unique_for: nil,
             unique_token: nil,
             unique_until: nil,
@@ -126,6 +135,16 @@ defmodule Kiq.Job do
     args
     |> Enum.into(%{})
     |> new()
+  end
+
+  @doc """
+  Extract a fully qualified worker module from a job.
+  """
+  @spec to_module(job :: t()) :: module()
+  def to_module(%__MODULE__{class: class}) do
+    class
+    |> String.split(".")
+    |> Module.safe_concat()
   end
 
   @doc """
