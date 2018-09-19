@@ -203,19 +203,7 @@ defmodule Kiq.Job do
     |> new()
   end
 
-  @doc """
-  Generate a compliant, entirely random, job id.
-
-  # Example
-
-      iex> Kiq.Job.random_jid() =~ ~r/^[0-9a-z]{24}$/
-      true
-
-      iex> job_a = Kiq.Job.random_jid()
-      ...> job_b = Kiq.Job.random_jid()
-      ...> job_a == job_b
-      false
-  """
+  @doc false
   @spec random_jid(size :: pos_integer()) :: binary()
   def random_jid(size \\ 12) do
     size
@@ -223,18 +211,35 @@ defmodule Kiq.Job do
     |> Base.encode16(case: :lower)
   end
 
-  @doc """
-  Calculate the unique key from a job's args, class and queue.
-  """
-  @spec unique_key(job :: t()) :: binary()
-  def unique_key(%__MODULE__{args: args, class: class, queue: queue}) do
+  # Uniqueness & Expiration
+
+  @doc false
+  @spec apply_expiry(job :: t()) :: t()
+  def apply_expiry(%__MODULE__{expires_in: expires_in} = job) when is_integer(expires_in) do
+    %__MODULE__{job | expires_at: future_at(job.at, expires_in)}
+  end
+
+  def apply_expiry(job), do: job
+
+  @doc false
+  @spec apply_unique(job :: t()) :: t()
+  def apply_unique(%__MODULE__{unique_for: unique_for} = job) when is_integer(unique_for) do
+    %__MODULE__{job | unlocks_at: future_at(job.at, unique_for), unique_token: unique_token(job)}
+  end
+
+  def apply_unique(job), do: job
+
+  # Helpers
+
+  defp future_at(nil, increment), do: future_at(Timestamp.unix_now(), increment)
+  defp future_at(now, increment), do: now + increment / 1_000.0
+
+  defp unique_token(%__MODULE__{args: args, class: class, queue: queue}) do
     [class, queue, args]
     |> Enum.map(&inspect/1)
     |> sha_hash()
     |> Base.encode16(case: :lower)
   end
-
-  # Helpers
 
   defp coerce_unique_until(%{unique_until: :start} = map), do: %{map | unique_until: "start"}
   defp coerce_unique_until(%{unique_until: "start"} = map), do: map

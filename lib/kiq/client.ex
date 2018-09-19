@@ -31,17 +31,15 @@ defmodule Kiq.Client do
 
   @doc false
   @spec enqueue(client(), Job.t()) :: {:ok, Job.t()}
-  def enqueue(client, %Job{retry: retry, retry_count: count} = job)
-      when is_integer(retry) or (retry == true and count > 0) do
-    GenServer.call(client, {:enqueue_at, job, @retry_set})
-  end
-
-  def enqueue(client, %Job{at: at} = job) when is_float(at) do
-    GenServer.call(client, {:enqueue_at, job, @schedule_set})
-  end
-
   def enqueue(client, %Job{queue: queue} = job) when is_binary(queue) do
     GenServer.call(client, {:enqueue, job})
+  end
+
+  @doc false
+  @spec retry(client(), Job.t()) :: {:ok, Job.t()}
+  def retry(client, %Job{retry: retry, retry_count: count} = job)
+      when is_integer(retry) or (retry == true and count > 0) do
+    GenServer.call(client, {:retry, job})
   end
 
   @doc false
@@ -137,21 +135,27 @@ defmodule Kiq.Client do
 
   @impl GenServer
   def handle_call({:enqueue, job}, _from, %State{conn: conn} = state) do
-    with {:ok, job} <- check_unique(job, conn),
-         {:ok, job} <- push_job(job, conn) do
-      {:reply, {:ok, job}, state}
-    else
-      {:locked, job} -> {:reply, {:ok, job}, state}
-    end
+    response =
+      job
+      |> Job.apply_unique()
+      |> Job.apply_expiry()
+      |> check_unique(conn)
+      |> case do
+        {:ok, %Job{at: at} = job} when is_float(at) ->
+          schedule_job(job, @schedule_set, conn)
+
+        {:ok, %Job{queue: queue} = job} when is_binary(queue) ->
+          push_job(job, conn)
+
+        {:locked, job} ->
+          {:ok, job}
+      end
+
+    {:reply, response, state}
   end
 
-  def handle_call({:enqueue_at, job, set}, _from, %State{conn: conn} = state) do
-    with {:ok, job} <- check_unique(job, conn),
-         {:ok, job} <- schedule_job(job, conn, set) do
-      {:reply, {:ok, job}, state}
-    else
-      {:locked, job} -> {:reply, {:ok, job}, state}
-    end
+  def handle_call({:retry, job}, _from, %State{conn: conn} = state) do
+    {:reply, schedule_job(job, @retry_set, conn), state}
   end
 
   def handle_call({:dequeue, _queue, 0}, _from, state) do
@@ -296,20 +300,14 @@ defmodule Kiq.Client do
 
   defp unlock_name(token), do: "unique:#{token}"
 
-  defp check_unique(%Job{unique_for: unique_for} = job, conn) when is_integer(unique_for) do
-    now = Timestamp.unix_now()
-    unlocks_at = (job.at || now) + unique_for / 1_000.0
-    expires_in = trunc((unlocks_at - now) * 1_000)
-    unique_key = Job.unique_key(job)
+  defp check_unique(%Job{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
+    unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)
 
-    command = ["SET", unlock_name(unique_key), unlocks_at, "PX", expires_in, "NX"]
+    command = ["SET", unlock_name(job.unique_token), unlocks_at, "PX", unlocks_in, "NX"]
 
     case Redix.command(conn, command) do
-      {:ok, "OK"} ->
-        {:ok, %Job{job | unique_token: unique_key, unlocks_at: unlocks_at}}
-
-      {:ok, _result} ->
-        {:locked, job}
+      {:ok, "OK"} -> {:ok, job}
+      {:ok, _result} -> {:locked, job}
     end
   end
 
@@ -328,7 +326,7 @@ defmodule Kiq.Client do
     {:ok, job}
   end
 
-  defp schedule_job(%Job{at: at} = job, conn, set) do
+  defp schedule_job(%Job{at: at} = job, set, conn) do
     score = Timestamp.to_score(at)
 
     {:ok, _result} = Redix.command(conn, ["ZADD", set, score, Job.encode(job)])

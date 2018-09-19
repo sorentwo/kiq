@@ -2,9 +2,16 @@ defmodule Kiq.JobTest do
   use Kiq.Case, async: true
   use ExUnitProperties
 
-  alias Kiq.Job
+  alias Kiq.{Job, Timestamp}
 
   doctest Job
+
+  describe "random_jid/1" do
+    test "a random fixed length job id is generated" do
+      Job.random_jid() =~ ~r/^[0-9a-z]{24}$/
+      Job.random_jid(8) =~ ~r/^[0-9a-z]{16}$/
+    end
+  end
 
   describe "encode/1" do
     test "transient and nil values are omitted" do
@@ -28,15 +35,29 @@ defmodule Kiq.JobTest do
     end
   end
 
-  describe "unique_key/1" do
-    property "job with any args can generate a valid unique_key" do
+  describe "apply_unique/1" do
+    property "job with any args can generate a valid unique_token" do
       check all class <- binary(min_length: 1),
                 queue <- binary(min_length: 1),
                 args <- list_of(one_of([boolean(), integer(), binary()])) do
-        job = Job.new(args: args, class: class, queue: queue)
+        job = job(args: args, class: class, queue: queue, unique_for: 100)
 
-        assert Job.unique_key(job) =~ ~r/\A[a-z0-9]{40}\z/
+        assert Job.apply_unique(job).unique_token =~ ~r/\A[a-z0-9]{40}\z/
       end
+    end
+
+    test "jobs with a unique_for value have a future unique_at date applied" do
+      job = job(unique_for: 10)
+
+      assert Job.apply_unique(job).unlocks_at > Timestamp.unix_now()
+    end
+  end
+
+  describe "apply_expiry/1" do
+    test "jobs with an expires_in property have a future expires_at date applied" do
+      job = job(expires_in: 10)
+
+      assert Job.apply_expiry(job).expires_at > Timestamp.unix_now()
     end
   end
 

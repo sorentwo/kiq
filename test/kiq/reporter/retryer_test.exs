@@ -35,7 +35,7 @@ defmodule Kiq.Reporter.RetryerTest do
   test "failed jobs are pushed into the retry set" do
     :ok = emit_event({:failure, job(retry: true, retry_count: 0), @error, []})
 
-    assert_receive {:enqueue_at, %Job{} = job, "retry"}, 1_000
+    assert_receive {:retry, %Job{} = job}, 1_000
 
     assert job.retry_count == 1
     assert job.error_class == "RuntimeError"
@@ -45,15 +45,12 @@ defmodule Kiq.Reporter.RetryerTest do
   test "jobs are enqueued with a custom retry limit" do
     :ok = emit_event({:failure, job(retry: 6, retry_count: 5), @error, []})
 
-    assert_receive {:enqueue_at, %Job{} = job, "retry"}, 1_000
-
-    assert job.retry == 6
-    assert job.retry_count == 6
+    assert_receive {:retry, %Job{retry: 6, retry_count: 6}}, 1_000
   end
 
   test "jobs are not enqueued when retries are exhausted" do
     :ok = emit_event({:failure, job(retry: true, retry_count: 25), @error, []})
 
-    refute_receive {:enqueue_at, %Job{}, "retry"}
+    refute_receive {:retry, %Job{}}
   end
 end
