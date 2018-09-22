@@ -66,6 +66,11 @@ defmodule Kiq.Reporter do
   @callback handle_success(job :: Job.t(), meta :: Keyword.t(), state :: state()) :: state()
 
   @doc """
+  Emitted when job processing has been intentionally aborted.
+  """
+  @callback handle_aborted(job :: Job.t(), meta :: Keyword.t(), state :: state()) :: state()
+
+  @doc """
   Emitted when an exception ocurred while processing a job.
   """
   @callback handle_failure(
@@ -112,6 +117,7 @@ defmodule Kiq.Reporter do
             case event do
               {:started, job} -> handle_started(job, state)
               {:success, job, meta} -> handle_success(job, meta, state)
+              {:aborted, job, meta} -> handle_aborted(job, meta, state)
               {:failure, job, error, stack} -> handle_failure(job, error, stack, state)
               {:stopped, job} -> handle_stopped(job, state)
             end
@@ -127,6 +133,9 @@ defmodule Kiq.Reporter do
       def handle_success(_job, _meta, state), do: state
 
       @impl Reporter
+      def handle_aborted(_job, _meta, state), do: state
+
+      @impl Reporter
       def handle_failure(_job, _error, _stack, state), do: state
 
       @impl Reporter
@@ -135,10 +144,11 @@ defmodule Kiq.Reporter do
       defoverridable start_link: 1,
                      init: 1,
                      handle_events: 3,
-                     handle_started: 2,
-                     handle_success: 3,
+                     handle_aborted: 3,
                      handle_failure: 4,
-                     handle_stopped: 2
+                     handle_started: 2,
+                     handle_stopped: 2,
+                     handle_success: 3
     end
   end
 end

@@ -4,6 +4,15 @@ defmodule Kiq.Timestamp do
   @type t :: float()
 
   @doc false
+  @spec from_unix(value :: t()) :: DateTime.t()
+  def from_unix(value) when is_float(value) do
+    value
+    |> Kernel.*(1_000_000)
+    |> trunc()
+    |> DateTime.from_unix!(:microseconds)
+  end
+
+  @doc false
   @spec date_now() :: binary()
   def date_now do
     DateTime.utc_now()

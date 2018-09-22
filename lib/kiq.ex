@@ -107,9 +107,7 @@ defmodule Kiq do
 
   Enable unique jobs for a worker by setting a unique time period:
 
-      defmodule MyApp.Worker do
-        use Kiq.Worker, unique_for: :timer.minutes(5)
-      end
+      use Kiq.Worker, unique_for: :timer.minutes(5)
 
   ### Unlock Policy
 
@@ -135,6 +133,23 @@ defmodule Kiq do
     from either Sidekiq or Kiq.
 
   [uniq]: https://github.com/mperham/sidekiq/wiki/Ent-Unique-Jobs
+
+  ## Expiring Jobs
+
+  Kiq supports Sidekiq Pro's [expiring jobs][expi]. Expiring jobs won't be ran
+  after a configurable amount of time. The expiration period is set with the
+  `expires_in` option, which accepts millisecond values identically
+  `unique_for`.
+
+  Set the expiration for a worker using a relative time:
+
+      use Kiq.Worker, expires_in: :timer.hours(1)
+
+  Expiration time applies after the scheduled time. That means scheduling a job
+  to run in an hour, with an expiration of 30 minutes, will expire in one hour
+  and 30 minutes.
+
+  [expi]: https://github.com/mperham/sidekiq/wiki/Pro-Expiring-Jobs
   """
 
   alias Kiq.{Client, Job, Timestamp}

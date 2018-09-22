@@ -45,6 +45,14 @@ defmodule Kiq.Reporter.LoggerTest do
     assert message =~ "success"
   end
 
+  test "job abort is logged with the reason", %{job: job} do
+    message = log_event({:aborted, job, [reason: :expired]})
+
+    assert message =~ "Worker"
+    assert message =~ "expired"
+    assert message =~ "aborted"
+  end
+
   test "job failure is logged with exception information", %{job: job} do
     message = log_event({:failure, job, %RuntimeError{}, []})
 

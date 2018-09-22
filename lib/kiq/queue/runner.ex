@@ -1,11 +1,12 @@
 defmodule Kiq.Queue.Runner do
   @moduledoc false
 
-  alias Kiq.Job
+  alias Kiq.{Job, Timestamp}
   alias Kiq.Reporter.Producer, as: Reporter
 
   @type meta :: [timing: pos_integer()]
   @type success :: {:ok, Job.t(), meta()}
+  @type aborted :: {:abort, Job.t(), meta()}
   @type failure :: {:error, Job.t(), Exception.t(), list()}
   @type options :: [reporter: identifier()]
 
@@ -27,7 +28,7 @@ defmodule Kiq.Queue.Runner do
   end
 
   @doc false
-  @spec run(reporter :: identifier(), job_input :: binary()) :: success() | failure()
+  @spec run(reporter :: identifier(), job_input :: binary()) :: success() | aborted() | failure()
   def run(reporter, job_input) do
     job =
       job_input
@@ -37,10 +38,11 @@ defmodule Kiq.Queue.Runner do
     try do
       Reporter.started(reporter, job)
 
+      maybe_abort!(job)
+
       {timing, _return} =
-        job.class
-        |> String.split(".")
-        |> Module.safe_concat()
+        job
+        |> Job.to_module()
         |> :timer.tc(:perform, [job.args])
 
       Reporter.success(reporter, job, timing: timing)
@@ -53,8 +55,25 @@ defmodule Kiq.Queue.Runner do
         Reporter.failure(reporter, job, exception, stacktrace)
 
         {:error, job, exception, stacktrace}
+    catch
+      {:abort, :expired} ->
+        Reporter.aborted(reporter, job, reason: :expired)
+
+        {:abort, job, reason: :expired}
     after
       Reporter.stopped(reporter, job)
     end
   end
+
+  defp maybe_abort!(%Job{expires_at: expires_at}) when is_float(expires_at) do
+    expires_at
+    |> Timestamp.from_unix()
+    |> DateTime.compare(DateTime.utc_now())
+    |> case do
+      :lt -> throw({:abort, :expired})
+      _cp -> :ok
+    end
+  end
+
+  defp maybe_abort!(_job), do: :ok
 end

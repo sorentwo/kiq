@@ -34,6 +34,12 @@ defmodule Kiq.Reporter.Producer do
   end
 
   @doc false
+  @spec aborted(server(), Job.t(), Keyword.t()) :: :ok
+  def aborted(server, %Job{} = job, meta) when is_list(meta) do
+    GenStage.call(server, {:notify, {:aborted, job, meta}})
+  end
+
+  @doc false
   @spec failure(server(), Job.t(), Exception.t(), list()) :: :ok
   def failure(server, %Job{} = job, %{__exception__: true} = error, stacktrace)
       when is_list(stacktrace) do

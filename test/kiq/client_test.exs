@@ -63,15 +63,6 @@ defmodule Kiq.ClientTest do
       assert 1 == Client.set_size(client, @schedule_set)
     end
 
-    test "jobs with a retry count are pushed into the 'retry' set", %{client: client} do
-      job = job(at: Timestamp.unix_in(1), retry_count: 1)
-
-      assert {:ok, %Job{}} = Client.enqueue(client, job)
-
-      assert 0 == Client.queue_size(client, @queue)
-      assert 1 == Client.set_size(client, @retry_set)
-    end
-
     test "jobs with a unique_for value have a locked_key value", %{client: client, redis: redis} do
       job = job(unique_for: :timer.seconds(5))
 
@@ -88,7 +79,7 @@ defmodule Kiq.ClientTest do
       job_b = job(unique_for: :timer.seconds(4))
 
       assert {:ok, %Job{unique_token: token}} = Client.enqueue(client, job_a)
-      assert {:ok, %Job{unique_token: nil}} = Client.enqueue(client, job_b)
+      assert {:ok, %Job{unique_token: ^token}} = Client.enqueue(client, job_b)
 
       assert 1 == Client.queue_size(client, @queue)
     end
@@ -99,6 +90,17 @@ defmodule Kiq.ClientTest do
       assert {:ok, %Job{unlocks_at: unlock}} = Client.enqueue(client, job)
 
       assert_in_delta unlock, Timestamp.unix_in(65), 0.1
+    end
+  end
+
+  describe "retry/2" do
+    test "jobs with a retry count are pushed into the 'retry' set", %{client: client} do
+      job = job(at: Timestamp.unix_in(1), retry_count: 1)
+
+      assert {:ok, %Job{}} = Client.retry(client, job)
+
+      assert 0 == Client.queue_size(client, @queue)
+      assert 1 == Client.set_size(client, @retry_set)
     end
   end
 

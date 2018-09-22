@@ -2,7 +2,7 @@ defmodule Kiq.Queue.RunnerTest do
   use Kiq.Case, async: true
 
   alias Kiq.Queue.Runner
-  alias Kiq.Worker
+  alias Kiq.{Timestamp, Worker}
 
   defmodule MyWorker do
     use Worker
@@ -45,6 +45,18 @@ defmodule Kiq.Queue.RunnerTest do
       assert is_pid(job.pid)
       assert Exception.exception?(error)
       assert is_list(stacktrace)
+    end
+
+    test "expired jobs are aborted", %{reporter: reporter} do
+      encoded_job = encoded_job(class: MyWorker, expires_at: Timestamp.unix_in(-5))
+
+      assert {:abort, _job, reason: :expired} = Runner.run(reporter, encoded_job)
+    end
+
+    test "jobs that have not yet expired aren't aborted", %{reporter: reporter} do
+      encoded_job = encoded_job(class: MyWorker, args: [1, 2], expires_at: Timestamp.unix_in(5))
+
+      assert {:ok, _job, _meta} = Runner.run(reporter, encoded_job)
     end
   end
 end

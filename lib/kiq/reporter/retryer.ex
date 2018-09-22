@@ -34,7 +34,7 @@ defmodule Kiq.Reporter.Retryer do
         |> Map.replace!(:error_class, error_name(error))
         |> Map.replace!(:error_message, Exception.message(error))
 
-      Client.enqueue(state.client, job)
+      Client.retry(state.client, job)
     end
 
     state
