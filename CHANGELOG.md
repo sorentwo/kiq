@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- Expiring Job support. Expiring jobs won't be ran after a configurable amount
+  of time. The expiration period is set with the `expires_in` option, which
+  accepts millisecond values identically to the `unique_for` option.
+
+### Fixed
+
+- Failing unique jobs would never be retried.
+
+## [0.2.0] — 2018-09-17
+
+### Added
+
 - Unique Job support. Workers, and their corresponding jobs, can now be made
   unique within for a period of time. Until the initial job has succeeded it is
   considered "locked" and all subsequent attempts to enqueue a job with the same
