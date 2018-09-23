@@ -5,7 +5,7 @@ defmodule Kiq.Client.Introspection do
 
   alias Kiq.Job
 
-  @type conn :: GenServer.server()
+  @typep conn :: GenServer.server()
 
   @spec jobs(queue :: binary(), conn :: conn()) :: list(Job.t())
   def jobs(queue, conn) when is_binary(queue) do

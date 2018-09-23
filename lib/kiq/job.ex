@@ -60,11 +60,11 @@ defmodule Kiq.Job do
           error_message: binary(),
           error_class: binary(),
           expires_in: pos_integer(),
-          expires_at: Timestamp.t(),
+          expires_at: nil | Timestamp.t(),
           unique_for: pos_integer(),
           unique_until: binary(),
           unique_token: binary(),
-          unlocks_at: Timestamp.t()
+          unlocks_at: nil | Timestamp.t()
         }
 
   @enforce_keys ~w(jid class)a
@@ -173,11 +173,13 @@ defmodule Kiq.Job do
 
   During the encoding process any keys with `nil` values are removed.
   """
-  @spec encode(job :: t()) :: binary()
+  @spec encode(job :: t()) :: binary() | {:error, Exception.t()}
   def encode(%__MODULE__{} = job) do
-    job
-    |> to_map()
-    |> Jason.encode!()
+    map = to_map(job)
+
+    with {:ok, encoded} <- Jason.encode(map) do
+      encoded
+    end
   end
 
   @doc """
@@ -196,11 +198,11 @@ defmodule Kiq.Job do
       ...> Map.get(job, :args)
       %{a: 1}
   """
-  @spec decode(input :: binary()) :: t()
+  @spec decode(input :: binary()) :: t() | {:error, Exception.t()}
   def decode(input) when is_binary(input) do
-    input
-    |> Jason.decode!(keys: :atoms)
-    |> new()
+    with {:ok, decoded} <- Jason.decode(input, keys: :atoms) do
+      new(decoded)
+    end
   end
 
   @doc false

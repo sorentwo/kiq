@@ -5,8 +5,8 @@ defmodule Kiq.Client.Queueing do
 
   alias Kiq.{Job, Timestamp}
 
-  @type conn :: GenServer.server()
-  @type resp :: {:ok, Job.t()} | {:error, atom()}
+  @typep conn :: GenServer.server()
+  @typep resp :: {:ok, Job.t()}
 
   @retry_set "retry"
   @schedule_set "schedule"
@@ -21,7 +21,7 @@ defmodule Kiq.Client.Queueing do
       {:ok, %Job{at: at} = job} when is_float(at) ->
         schedule_job(job, @schedule_set, conn)
 
-      {:ok, %Job{queue: queue} = job} when is_binary(queue) ->
+      {:ok, job} ->
         push_job(job, conn)
 
       {:locked, job} ->
@@ -47,15 +47,17 @@ defmodule Kiq.Client.Queueing do
   def deschedule(set, conn) when is_binary(set) do
     max_score = Timestamp.to_score()
 
-    with {:ok, [_ | _] = jobs} <- Redix.command(conn, ["ZRANGEBYSCORE", set, 0, max_score]),
+    with {:ok, [_ | _] = jobs} <- command(conn, ["ZRANGEBYSCORE", set, 0, max_score]),
          rem_commands = Enum.map(jobs, &["ZREM", set, &1]),
-         {:ok, rem_counts} = Redix.pipeline(conn, rem_commands) do
+         {:ok, rem_counts} = pipeline(conn, rem_commands) do
       jobs
       |> Enum.zip(rem_counts)
       |> Enum.filter(fn {_job, count} -> count > 0 end)
       |> Enum.map(fn {job, _count} -> Job.decode(job) end)
       |> Enum.each(&push_job(&1, conn))
     end
+
+    :ok
   end
 
   @spec resurrect(queue :: binary(), conn :: conn()) :: :ok
@@ -82,7 +84,7 @@ defmodule Kiq.Client.Queueing do
 
     command = ["SET", unlock_name(job.unique_token), unlocks_at, "PX", unlocks_in, "NX"]
 
-    case Redix.command(conn, command) do
+    case command(conn, command) do
       {:ok, "OK"} -> {:ok, job}
       {:ok, _result} -> {:locked, job}
     end
@@ -98,7 +100,7 @@ defmodule Kiq.Client.Queueing do
       ["LPUSH", queue_name(queue), Job.encode(job)]
     ]
 
-    {:ok, _result} = Redix.pipeline(conn, commands)
+    {:ok, _result} = pipeline(conn, commands)
 
     {:ok, job}
   end
@@ -106,7 +108,7 @@ defmodule Kiq.Client.Queueing do
   defp schedule_job(%Job{at: at} = job, set, conn) do
     score = Timestamp.to_score(at)
 
-    {:ok, _result} = Redix.command(conn, ["ZADD", set, score, Job.encode(job)])
+    {:ok, _result} = command(conn, ["ZADD", set, score, Job.encode(job)])
 
     {:ok, job}
   end

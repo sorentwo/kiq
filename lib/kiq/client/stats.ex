@@ -5,9 +5,10 @@ defmodule Kiq.Client.Stats do
 
   alias Kiq.{Heartbeat, RunningJob, Timestamp}
 
-  @type conn :: GenServer.server()
+  @typep conn :: GenServer.server()
+  @typep resp :: :ok | {:error, atom()}
 
-  @spec record_heart(heartbeat :: Hearbeat.t(), conn :: conn()) :: :ok
+  @spec record_heart(heartbeat :: Heartbeat.t(), conn :: conn()) :: resp()
   def record_heart(%Heartbeat{} = heartbeat, conn) do
     %Heartbeat{busy: busy, identity: key, quiet: quiet, running: running} = heartbeat
 
@@ -26,9 +27,7 @@ defmodule Kiq.Client.Stats do
       ["EXEC"]
     ]
 
-    {:ok, _result} = pipeline(conn, commands)
-
-    :ok
+    with {:ok, _result} <- pipeline(conn, commands), do: :ok
   end
 
   @spec record_stats(stats :: Keyword.t(), conn :: conn()) :: :ok

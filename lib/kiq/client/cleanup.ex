@@ -5,7 +5,7 @@ defmodule Kiq.Client.Cleanup do
 
   alias Kiq.Job
 
-  @type conn :: GenServer.server()
+  @typep conn :: GenServer.server()
 
   @static_keys ["retry", "schedule", "processes"]
 
@@ -17,7 +17,7 @@ defmodule Kiq.Client.Cleanup do
 
     keys = @static_keys ++ queues ++ unique ++ stats
 
-    {:ok, _reply} = command(conn, ["DEL" |  keys])
+    {:ok, _reply} = command(conn, ["DEL" | keys])
 
     :ok
   end
