@@ -55,7 +55,7 @@ defmodule Kiq.MixProject do
       {:jason, "~> 1.1"},
       {:gen_stage, "~> 0.14"},
       {:redix, "~> 0.7"},
-      {:credo, "~> 0.10", only: [:dev, :test], runtime: false},
+      {:benchee, "~> 0.13", only: [:dev], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false},
       {:stream_data, "~> 0.4", only: [:test]}

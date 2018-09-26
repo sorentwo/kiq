@@ -152,6 +152,20 @@ test, defining workers and custom reporters.
 
 [hd]: https://hexdocs.pm/kiq
 
+## Benchmarks
+
+Kiq has a set of benchmarks to track the performance of important operations.
+Benchmarks are ran using the [Benchee][benchee] library and require Redis to be
+running.
+
+To run all benchmarks:
+
+```bash
+mix run bench/bench_helper.exs
+```
+
+[benchee]: https://github.com/PragTob/benchee
+
 ## Contributing
 
 Clone the repository and run `$ mix test` to make sure everything is working. For
