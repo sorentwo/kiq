@@ -47,7 +47,7 @@ defmodule Kiq.Client.Queueing do
   def deschedule(set, conn) when is_binary(set) do
     max_score = Timestamp.to_score()
 
-    with {:ok, [_ | _] = jobs} <- command(conn, ["ZRANGEBYSCORE", set, 0, max_score]),
+    with {:ok, [_ | _] = jobs} <- command(conn, ["ZRANGEBYSCORE", set, "0", max_score]),
          rem_commands = Enum.map(jobs, &["ZREM", set, &1]),
          {:ok, rem_counts} = pipeline(conn, rem_commands) do
       jobs
@@ -79,20 +79,20 @@ defmodule Kiq.Client.Queueing do
 
   defp unlock_name(token), do: "unique:#{token}"
 
-  defp check_unique(%Job{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
+  defp check_unique(%{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
     unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)
 
     command = ["SET", unlock_name(job.unique_token), unlocks_at, "PX", unlocks_in, "NX"]
 
     case command(conn, command) do
       {:ok, "OK"} -> {:ok, job}
-      {:ok, _result} -> {:locked, job}
+      {:ok, _res} -> {:locked, job}
     end
   end
 
   defp check_unique(job, _client), do: {:ok, job}
 
-  defp push_job(%Job{queue: queue} = job, conn) do
+  defp push_job(%{queue: queue} = job, conn) do
     job = %Job{job | enqueued_at: Timestamp.unix_now()}
 
     commands = [

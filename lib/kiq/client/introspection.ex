@@ -9,7 +9,7 @@ defmodule Kiq.Client.Introspection do
 
   @spec jobs(queue :: binary(), conn :: conn()) :: list(Job.t())
   def jobs(queue, conn) when is_binary(queue) do
-    {:ok, results} = command(conn, ["LRANGE", "queue:#{queue}", 0, -1])
+    {:ok, results} = command(conn, ["LRANGE", "queue:#{queue}", "0", "-1"])
 
     Enum.map(results, &Job.decode/1)
   end

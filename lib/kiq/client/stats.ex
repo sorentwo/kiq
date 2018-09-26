@@ -13,17 +13,17 @@ defmodule Kiq.Client.Stats do
     %Heartbeat{busy: busy, identity: key, quiet: quiet, running: running} = heartbeat
 
     wkey = "#{key}:workers"
-    beat = Timestamp.unix_now()
+    beat = Timestamp.unix_now() |> to_string()
     info = Jason.encode!(heartbeat)
 
     commands = [
       ["MULTI"],
       ["SADD", "processes", key],
       ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
-      ["EXPIRE", key, 60],
+      ["EXPIRE", key, "60"],
       ["DEL", wkey],
       ["HMSET" | [wkey | Enum.flat_map(running, &running_detail/1)]],
-      ["EXPIRE", wkey, 60],
+      ["EXPIRE", wkey, "60"],
       ["EXEC"]
     ]
 

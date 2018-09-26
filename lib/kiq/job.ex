@@ -60,11 +60,11 @@ defmodule Kiq.Job do
           error_message: binary(),
           error_class: binary(),
           expires_in: pos_integer(),
-          expires_at: nil | Timestamp.t(),
+          expires_at: Timestamp.t(),
           unique_for: pos_integer(),
           unique_until: binary(),
           unique_token: binary(),
-          unlocks_at: nil | Timestamp.t()
+          unlocks_at: Timestamp.t()
         }
 
   @enforce_keys ~w(jid class)a
@@ -218,7 +218,7 @@ defmodule Kiq.Job do
   @doc false
   @spec apply_expiry(job :: t()) :: t()
   def apply_expiry(%__MODULE__{expires_in: expires_in} = job) when is_integer(expires_in) do
-    %__MODULE__{job | expires_at: future_at(job.at, expires_in)}
+    %{job | expires_at: future_at(job.at, expires_in)}
   end
 
   def apply_expiry(job), do: job
@@ -226,7 +226,7 @@ defmodule Kiq.Job do
   @doc false
   @spec apply_unique(job :: t()) :: t()
   def apply_unique(%__MODULE__{unique_for: unique_for} = job) when is_integer(unique_for) do
-    %__MODULE__{job | unlocks_at: future_at(job.at, unique_for), unique_token: unique_token(job)}
+    %{job | unlocks_at: future_at(job.at, unique_for), unique_token: unique_token(job)}
   end
 
   def apply_unique(job), do: job
