@@ -9,7 +9,7 @@ defmodule Kiq.Client.Cleanup do
 
   @static_keys ["retry", "schedule", "processes"]
 
-  @spec clear_all(conn :: conn()) :: :ok
+  @spec clear_all(conn()) :: :ok
   def clear_all(conn) do
     {:ok, queues} = command(conn, ["KEYS", "queue*"])
     {:ok, unique} = command(conn, ["KEYS", "unique:*"])
@@ -22,15 +22,15 @@ defmodule Kiq.Client.Cleanup do
     :ok
   end
 
-  @spec remove_backup(job :: Job.t(), conn :: conn()) :: :ok
-  def remove_backup(%Job{queue: queue} = job, conn) do
+  @spec remove_backup(conn(), Job.t()) :: :ok
+  def remove_backup(conn, %Job{queue: queue} = job) do
     {:ok, _result} = command(conn, ["LREM", "queue:#{queue}:backup", "0", Job.encode(job)])
 
     :ok
   end
 
-  @spec unlock_job(job :: Job.t(), conn :: conn()) :: :ok
-  def unlock_job(%Job{unique_token: token}, conn) do
+  @spec unlock_job(conn(), Job.t()) :: :ok
+  def unlock_job(conn, %Job{unique_token: token}) do
     {:ok, _result} = command(conn, ["DEL", "unique:#{token}"])
 
     :ok

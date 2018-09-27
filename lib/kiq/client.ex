@@ -4,7 +4,7 @@ defmodule Kiq.Client do
   use GenServer
 
   alias Kiq.{Config, Heartbeat, Job}
-  alias Kiq.Client.{Cleanup, Introspection, Queueing, Stats}
+  alias Kiq.Client.{Cleanup, Introspection, Pool, Queueing, Stats}
 
   @type client :: GenServer.server()
   @type queue :: binary()
@@ -15,8 +15,7 @@ defmodule Kiq.Client do
   defmodule State do
     @moduledoc false
 
-    @enforce_keys [:conn]
-    defstruct conn: nil
+    defstruct pool: nil
   end
 
   @spec start_link(opts :: options()) :: GenServer.on_start()
@@ -108,76 +107,74 @@ defmodule Kiq.Client do
   # Server
 
   @impl GenServer
-  def init(config: %Config{client_opts: client_opts}) do
-    redis_url = Keyword.fetch!(client_opts, :redis_url)
-
-    {:ok, conn} = Redix.start_link(redis_url)
-
-    {:ok, %State{conn: conn}}
+  def init(config: %Config{pool_name: pool_name}) do
+    {:ok, %State{pool: pool_name}}
   end
 
   ## Enqueuing | Dequeuing
 
   @impl GenServer
-  def handle_call({:enqueue, job}, _from, %State{conn: conn} = state) do
-    {:reply, Queueing.enqueue(job, conn), state}
+  def handle_call({:enqueue, job}, _from, %State{pool: pool} = state) do
+    {:reply, Queueing.enqueue(conn(pool), job), state}
   end
 
-  def handle_call({:retry, job}, _from, %State{conn: conn} = state) do
-    {:reply, Queueing.retry(job, conn), state}
+  def handle_call({:retry, job}, _from, %State{pool: pool} = state) do
+    {:reply, Queueing.retry(conn(pool), job), state}
   end
 
-  def handle_call({:dequeue, queue, count}, _from, %State{conn: conn} = state) do
-    {:reply, Queueing.dequeue(queue, count, conn), state}
+  def handle_call({:dequeue, queue, count}, _from, %State{pool: pool} = state) do
+    {:reply, Queueing.dequeue(conn(pool), queue, count), state}
   end
 
-  def handle_call({:deschedule, set}, _from, %State{conn: conn} = state) do
-    {:reply, Queueing.deschedule(set, conn), state}
+  def handle_call({:deschedule, set}, _from, %State{pool: pool} = state) do
+    {:reply, Queueing.deschedule(conn(pool), set), state}
   end
 
-  def handle_call({:resurrect, queue}, _from, %State{conn: conn} = state) do
-    {:reply, Queueing.resurrect(queue, conn), state}
+  def handle_call({:resurrect, queue}, _from, %State{pool: pool} = state) do
+    {:reply, Queueing.resurrect(conn(pool), queue), state}
   end
 
   ## Introspection
 
-  def handle_call({:jobs, queue}, _from, %State{conn: conn} = state) do
-    {:reply, Introspection.jobs(queue, conn), state}
+  def handle_call({:jobs, queue}, _from, %State{pool: pool} = state) do
+    {:reply, Introspection.jobs(conn(pool), queue), state}
   end
 
-  def handle_call({:queue_size, queue}, _from, %State{conn: conn} = state) do
-    {:reply, Introspection.queue_size(queue, conn), state}
+  def handle_call({:queue_size, queue}, _from, %State{pool: pool} = state) do
+    {:reply, Introspection.queue_size(conn(pool), queue), state}
   end
 
-  def handle_call({:set_size, set}, _from, %State{conn: conn} = state) do
-    {:reply, Introspection.set_size(set, conn), state}
+  def handle_call({:set_size, set}, _from, %State{pool: pool} = state) do
+    {:reply, Introspection.set_size(conn(pool), set), state}
   end
 
   ## Clearing & Removal
 
-  def handle_call(:clear_all, _from, %State{conn: conn} = state) do
-    {:reply, Cleanup.clear_all(conn), state}
+  def handle_call(:clear_all, _from, %State{pool: pool} = state) do
+    {:reply, Cleanup.clear_all(conn(pool)), state}
   end
 
-  def handle_call({:remove_backup, job}, _from, %State{conn: conn} = state) do
-    {:reply, Cleanup.remove_backup(job, conn), state}
+  def handle_call({:remove_backup, job}, _from, %State{pool: pool} = state) do
+    {:reply, Cleanup.remove_backup(conn(pool), job), state}
   end
 
-  def handle_call({:unlock_job, job}, _from, %State{conn: conn} = state) do
-    {:reply, Cleanup.unlock_job(job, conn), state}
+  def handle_call({:unlock_job, job}, _from, %State{pool: pool} = state) do
+    {:reply, Cleanup.unlock_job(conn(pool), job), state}
   end
 
   ## Stats
 
-  def handle_call({:record_heart, heartbeat}, _from, %State{conn: conn} = state) do
-    {:reply, Stats.record_heart(heartbeat, conn), state}
+  def handle_call({:record_heart, heartbeat}, _from, %State{pool: pool} = state) do
+    {:reply, Stats.record_heart(conn(pool), heartbeat), state}
   end
 
-  def handle_call({:record_stats, stats}, _from, %State{conn: conn} = state) do
-    {:reply, Stats.record_stats(stats, conn), state}
+  def handle_call({:record_stats, stats}, _from, %State{pool: pool} = state) do
+    {:reply, Stats.record_stats(conn(pool), stats), state}
   end
 
-  def handle_call({:remove_heart, heartbeat}, _from, %State{conn: conn} = state) do
-    {:reply, Stats.remove_heart(heartbeat, conn), state}
+  def handle_call({:remove_heart, heartbeat}, _from, %State{pool: pool} = state) do
+    {:reply, Stats.remove_heart(conn(pool), heartbeat), state}
   end
+
+  defp conn(pool), do: Pool.checkout(pool)
 end

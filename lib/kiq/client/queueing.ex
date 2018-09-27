@@ -11,8 +11,8 @@ defmodule Kiq.Client.Queueing do
   @retry_set "retry"
   @schedule_set "schedule"
 
-  @spec enqueue(job :: Job.t(), conn :: conn()) :: resp()
-  def enqueue(%Job{} = job, conn) do
+  @spec enqueue(conn(), Job.t()) :: resp()
+  def enqueue(conn, %Job{} = job) do
     job
     |> Job.apply_unique()
     |> Job.apply_expiry()
@@ -29,13 +29,13 @@ defmodule Kiq.Client.Queueing do
     end
   end
 
-  @spec retry(job :: Job.t(), conn :: conn()) :: resp()
-  def retry(%Job{} = job, conn) do
+  @spec retry(conn(), Job.t()) :: resp()
+  def retry(conn, %Job{} = job) do
     schedule_job(job, @retry_set, conn)
   end
 
-  @spec dequeue(queue :: binary(), count :: pos_integer(), conn :: conn()) :: list(iodata())
-  def dequeue(queue, count, conn) when is_binary(queue) and is_integer(count) do
+  @spec dequeue(conn(), binary(), pos_integer()) :: list(iodata())
+  def dequeue(conn, queue, count) when is_binary(queue) and is_integer(count) do
     commands = for _ <- 1..count, do: ["RPOPLPUSH", queue_name(queue), backup_name(queue)]
 
     {:ok, results} = pipeline(conn, commands)
@@ -43,8 +43,8 @@ defmodule Kiq.Client.Queueing do
     Enum.filter(results, & &1)
   end
 
-  @spec deschedule(set :: binary(), conn :: conn()) :: :ok
-  def deschedule(set, conn) when is_binary(set) do
+  @spec deschedule(conn(), binary()) :: :ok
+  def deschedule(conn, set) when is_binary(set) do
     max_score = Timestamp.to_score()
 
     with {:ok, [_ | _] = jobs} <- command(conn, ["ZRANGEBYSCORE", set, "0", max_score]),
@@ -60,8 +60,8 @@ defmodule Kiq.Client.Queueing do
     :ok
   end
 
-  @spec resurrect(queue :: binary(), conn :: conn()) :: :ok
-  def resurrect(queue, conn) when is_binary(queue) do
+  @spec resurrect(conn(), binary()) :: :ok
+  def resurrect(conn, queue) when is_binary(queue) do
     with {:ok, count} when count > 0 <- command(conn, ["LLEN", backup_name(queue)]) do
       commands = for _ <- 1..count, do: ["RPOPLPUSH", backup_name(queue), queue_name(queue)]
 

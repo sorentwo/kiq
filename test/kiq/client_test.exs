@@ -2,7 +2,9 @@ defmodule Kiq.ClientTest do
   use Kiq.Case, async: true
 
   alias Kiq.{Client, Config, Heartbeat, Job, Timestamp}
+  alias Kiq.Client.Pool
 
+  @pool_name Module.concat([__MODULE__, "Pool"])
   @queue "testing"
   @queue_list "queue:#{@queue}"
   @backup_list "queue:#{@queue}:backup"
@@ -10,14 +12,16 @@ defmodule Kiq.ClientTest do
   @schedule_set "schedule"
 
   setup do
-    config = Config.new(client_opts: [redis_url: redis_url()])
+    config = Config.new(client_opts: [redis_url: redis_url(), pool_size: 1], pool_name: @pool_name)
+    redis_name = Pool.worker_name(config, 0)
 
+    {:ok, pool} = start_supervised({Pool, config: config, name: @pool_name})
+    {:ok, redis} = start_supervised({Redix, {redis_url(), name: redis_name}})
     {:ok, client} = start_supervised({Client, config: config})
-    {:ok, redis} = start_supervised({Redix, [redis_url()]})
 
     :ok = Client.clear_all(client)
 
-    {:ok, client: client, redis: redis}
+    {:ok, client: client, pool: pool, redis: redis}
   end
 
   describe "jobs/2" do

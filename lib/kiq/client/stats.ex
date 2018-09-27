@@ -8,8 +8,8 @@ defmodule Kiq.Client.Stats do
   @typep conn :: GenServer.server()
   @typep resp :: :ok | {:error, atom()}
 
-  @spec record_heart(heartbeat :: Heartbeat.t(), conn :: conn()) :: resp()
-  def record_heart(%Heartbeat{} = heartbeat, conn) do
+  @spec record_heart(conn(), Heartbeat.t()) :: resp()
+  def record_heart(conn, %Heartbeat{} = heartbeat) do
     %Heartbeat{busy: busy, identity: key, quiet: quiet, running: running} = heartbeat
 
     wkey = "#{key}:workers"
@@ -30,8 +30,8 @@ defmodule Kiq.Client.Stats do
     with {:ok, _result} <- pipeline(conn, commands), do: :ok
   end
 
-  @spec record_stats(stats :: Keyword.t(), conn :: conn()) :: :ok
-  def record_stats(stats, conn) when is_list(stats) do
+  @spec record_stats(conn(), Keyword.t()) :: :ok
+  def record_stats(conn, stats) when is_list(stats) do
     date = Timestamp.date_now()
     processed = Keyword.fetch!(stats, :success)
     failed = Keyword.fetch!(stats, :failure)
@@ -50,8 +50,8 @@ defmodule Kiq.Client.Stats do
     :ok
   end
 
-  @spec remove_heart(heartbeat :: Heartbeat.t(), conn :: conn()) :: :ok
-  def remove_heart(%Heartbeat{} = heartbeat, conn) do
+  @spec remove_heart(conn(), Heartbeat.t()) :: :ok
+  def remove_heart(conn, %Heartbeat{} = heartbeat) do
     %Heartbeat{identity: key} = heartbeat
 
     commands = [["SREM", "processes", key], ["DEL", "#{key}:workers"]]
