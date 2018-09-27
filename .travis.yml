@@ -13,7 +13,7 @@ before_script:
   - travis_wait mix dialyzer --plt
 script:
   - mix format --check-formatted
-  - mix dialyzer
+  - mix dialyzer --halt-exit-status
   - mix test
 services:
   - redis-server
