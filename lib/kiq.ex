@@ -223,6 +223,7 @@ defmodule Kiq do
       @behaviour Kiq
 
       @client_name Module.concat(__MODULE__, "Client")
+      @pool_name Module.concat(__MODULE__, "Pool")
       @reporter_name Module.concat(__MODULE__, "Reporter")
       @supervisor_name Module.concat(__MODULE__, "Supervisor")
 
@@ -230,6 +231,7 @@ defmodule Kiq do
             |> Keyword.put(:main, __MODULE__)
             |> Keyword.put(:name, @supervisor_name)
             |> Keyword.put(:client_name, @client_name)
+            |> Keyword.put(:pool_name, @pool_name)
             |> Keyword.put(:reporter_name, @reporter_name)
 
       @doc false

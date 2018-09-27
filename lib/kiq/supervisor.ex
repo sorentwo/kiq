@@ -4,6 +4,8 @@ defmodule Kiq.Supervisor do
   use Supervisor
 
   alias Kiq.Config
+  alias Kiq.Client.Pool
+  alias Kiq.Client.Supervisor, as: ClientSupervisor
   alias Kiq.Queue.Scheduler
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
   alias Kiq.Reporter.Supervisor, as: ReporterSupervisor
@@ -41,7 +43,11 @@ defmodule Kiq.Supervisor do
   ## Helpers
 
   defp client_children(config) do
-    [{config.client, config: config, name: config.client_name}]
+    [
+      {ClientSupervisor, config: config},
+      {Pool, config: config, name: config.pool_name},
+      {config.client, config: config, name: config.client_name}
+    ]
   end
 
   defp server_children(%Config{server?: false}) do

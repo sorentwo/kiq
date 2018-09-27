@@ -6,9 +6,13 @@ defmodule Kiq.Queue.Supervisor do
   alias Kiq.Config
   alias Kiq.Queue.{Consumer, Producer}
 
-  @type options :: [config: Config.t(), queue: binary(), limit: pos_integer(), name: identifier()]
+  @type options :: [
+          config: Config.t(),
+          queue: binary(),
+          limit: pos_integer(),
+          name: GenServer.name()
+        ]
 
-  @doc false
   @spec start_link(opts :: options()) :: Supervisor.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)

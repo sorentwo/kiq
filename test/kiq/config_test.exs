@@ -9,6 +9,7 @@ defmodule Kiq.ConfigTest do
 
       assert config.client
       assert config.client_name
+      assert config.pool_name
       assert config.queues
       assert config.reporter_name
       assert config.schedulers

@@ -4,6 +4,7 @@ defmodule Kiq.Config do
   import Kiq.Identity, only: [identity: 0]
 
   alias Kiq.{Client, Reporter}
+  alias Kiq.Client.Pool
   alias Kiq.Reporter.{Logger, Retryer, Stats, Unlocker}
 
   @type queue_name :: atom() | binary()
@@ -16,6 +17,7 @@ defmodule Kiq.Config do
           client_opts: Keyword.t(),
           extra_reporters: list(module()),
           identity: binary(),
+          pool_name: term(),
           queues: list(queue_config()),
           reporter_name: term(),
           reporters: list(module()),
@@ -29,6 +31,7 @@ defmodule Kiq.Config do
             extra_reporters: [],
             queues: [default: 25],
             identity: nil,
+            pool_name: Pool,
             reporter_name: Reporter,
             reporters: [Logger, Retryer, Stats, Unlocker],
             schedulers: ~w(retry schedule),
