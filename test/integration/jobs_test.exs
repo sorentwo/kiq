@@ -20,7 +20,7 @@ defmodule Kiq.Integration.JobsTest do
           |> Worker.new()
           |> Integration.enqueue()
 
-          assert_receive {:processed, ^index}, 2_000
+          assert_receive {:processed, ^index}
         end
       end)
 

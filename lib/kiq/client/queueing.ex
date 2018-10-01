@@ -30,13 +30,9 @@ defmodule Kiq.Client.Queueing do
   end
 
   @spec retry(conn(), Job.t()) :: resp()
-  def retry(conn, %Job{} = job) do
+  def retry(conn, %Job{retry: retry, retry_count: count} = job)
+      when is_integer(retry) or (retry == true and count > 0) do
     schedule_job(job, @retry_set, conn)
-  end
-
-  @spec locked?(conn(), Job.t()) :: resp()
-  def locked?(conn, %Job{} = job) do
-    {:ok, 1} == command(conn, ["EXISTS", unlock_name(job.unique_token)])
   end
 
   @spec dequeue(conn(), binary(), pos_integer()) :: list(iodata())

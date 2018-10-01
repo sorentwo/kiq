@@ -22,7 +22,7 @@ defmodule Kiq.Integration.ExpiringJobsTest do
         Integration.enqueue(job_a)
         Integration.enqueue(job_b)
 
-        assert_receive {:processed, 2}, 2_000
+        assert_receive {:processed, 2}
       end)
 
     assert logged =~

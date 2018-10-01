@@ -1,9 +1,8 @@
 defmodule Kiq.Integration.UniqueJobsTest do
   use Kiq.Case
 
-  alias Kiq.Integration
-  alias Kiq.Integration.Worker
-  alias Kiq.Client.{Introspection, Pool, Queueing}
+  alias Kiq.{Integration, Timestamp}
+  alias Kiq.Client.{Introspection, Pool}
 
   @moduletag :capture_log
 
@@ -20,61 +19,43 @@ defmodule Kiq.Integration.UniqueJobsTest do
   end
 
   test "unique jobs with the same arguments are only enqueued once", %{conn: conn} do
-    job = unique_job(1)
+    at = Timestamp.unix_in(1)
 
-    {:ok, job_a} = Integration.enqueue(job, in: 60)
-    {:ok, job_b} = Integration.enqueue(job, in: 30)
-    {:ok, job_c} = Integration.enqueue(job, in: 20)
+    {:ok, job_a} = enqueue_job("PASS", at: at, unique_for: :timer.minutes(1))
+    {:ok, job_b} = enqueue_job("PASS", at: at, unique_for: :timer.minutes(1))
+    {:ok, job_c} = enqueue_job("PASS", at: at, unique_for: :timer.minutes(1))
 
     assert job_a.unique_token == job_b.unique_token
     assert job_b.unique_token == job_c.unique_token
 
     assert Introspection.set_size(conn, "schedule") == 1
-    assert Queueing.locked?(conn, job_c)
+    assert Introspection.locked?(conn, job_c)
   end
 
   test "successful unique jobs are unlocked after completion", %{conn: conn} do
-    job = unique_job(2)
-
-    {:ok, job} = Integration.enqueue(job)
+    {:ok, job} = enqueue_job("PASS", unique_for: :timer.minutes(1))
 
     assert job.unique_token
     assert job.unlocks_at
 
-    assert Queueing.locked?(conn, job)
+    assert Introspection.locked?(conn, job)
 
-    assert_receive {:processed, 2}, 1_500
+    assert_receive {:processed, _}
 
-    refute_locked(conn, job)
+    with_backoff(fn ->
+      refute Introspection.locked?(conn, job)
+    end)
   end
 
   test "started jobs with :unique_until start are unlocked immediately", %{conn: conn} do
-    job = %{unique_job("FAILING_JOB") | unique_until: "start"}
+    {:ok, job} = enqueue_job("FAIL", unique_until: "start", unique_for: :timer.minutes(1))
 
-    {:ok, job} = Integration.enqueue(job)
+    assert Introspection.locked?(conn, job)
 
-    assert Queueing.locked?(conn, job)
+    assert_receive :failed
 
-    assert_receive {:failed, "FAILING_JOB"}, 1_500
-
-    refute_locked(conn, job)
-  end
-
-  defp unique_job(value) do
-    %{Worker.new([Worker.pid_to_bin(), value]) | unique_for: :timer.minutes(1)}
-  end
-
-  defp refute_locked(conn, job), do: refute_locked(conn, job, 0, 20)
-
-  defp refute_locked(_conn, job, limit, limit) do
-    flunk "Job with #{job.jid} is still locked"
-  end
-
-  defp refute_locked(conn, job, retry, limit) do
-    if Queueing.locked?(conn, job) do
-      Process.sleep(50)
-
-      refute_locked(conn, job, retry + 1, limit)
-    end
+    with_backoff(fn ->
+      refute Introspection.locked?(conn, job)
+    end)
   end
 end
