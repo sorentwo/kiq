@@ -16,13 +16,13 @@ defmodule Kiq.Client.Supervisor do
   end
 
   @impl Supervisor
-  def init(config: %Config{client_opts: opts} = config) do
+  def init(config: %Config{client_opts: opts, pool_name: pool_name}) do
     {size, opts} = Keyword.pop(opts, :pool_size, 5)
     {host, opts} = Keyword.pop(opts, :redis_url)
 
     children =
       for index <- 0..(size - 1) do
-        name = Pool.worker_name(config, index)
+        name = Pool.worker_name(pool_name, index)
         opts = Keyword.put(opts, :name, name)
 
         Supervisor.child_spec({Redix, {host, opts}}, id: name)

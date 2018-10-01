@@ -34,6 +34,11 @@ defmodule Kiq.Client.Queueing do
     schedule_job(job, @retry_set, conn)
   end
 
+  @spec locked?(conn(), Job.t()) :: resp()
+  def locked?(conn, %Job{} = job) do
+    {:ok, 1} == command(conn, ["EXISTS", unlock_name(job.unique_token)])
+  end
+
   @spec dequeue(conn(), binary(), pos_integer()) :: list(iodata())
   def dequeue(conn, queue, count) when is_binary(queue) and is_integer(count) do
     commands = for _ <- 1..count, do: ["RPOPLPUSH", queue_name(queue), backup_name(queue)]

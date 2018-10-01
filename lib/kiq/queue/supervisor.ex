@@ -24,10 +24,9 @@ defmodule Kiq.Queue.Supervisor do
   def init(config: config, queue: queue, limit: limit) do
     prod_name = Module.concat(["Kiq", String.capitalize(queue), "Producer"])
     cons_name = Module.concat(["Kiq", String.capitalize(queue), "Consumer"])
-    prod_opts = [client: config.client_name, queue: queue, name: prod_name]
+    prod_opts = [config: config, queue: queue, name: prod_name]
 
     cons_opts = [
-      client: config.client_name,
       reporter: config.reporter_name,
       subscribe_to: [{prod_name, max_demand: limit}],
       name: cons_name

@@ -3,12 +3,13 @@ defmodule Kiq.Reporter.Stats do
 
   use Kiq.Reporter
 
-  alias Kiq.{Client, Heartbeat, Reporter}
+  alias Kiq.{Heartbeat, Reporter}
+  alias Kiq.Client.{Pool, Stats}
 
   defmodule State do
     @moduledoc false
 
-    defstruct client: nil,
+    defstruct pool: nil,
               heartbeat: nil,
               queues: [],
               success_count: 0,
@@ -25,7 +26,7 @@ defmodule Kiq.Reporter.Stats do
 
     state =
       State
-      |> struct!(client: conf.client_name, queues: conf.queues, flush_interval: fint)
+      |> struct!(pool: conf.pool_name, queues: conf.queues, flush_interval: fint)
       |> schedule_flush()
 
     heartbeat = Heartbeat.new(queues: state.queues, identity: conf.identity)
@@ -82,8 +83,10 @@ defmodule Kiq.Reporter.Stats do
 
   # Helpers
 
-  defp record_heart(%State{client: client, heartbeat: heartbeat} = state) do
-    :ok = Client.record_heart(client, heartbeat)
+  defp record_heart(%State{pool: pool, heartbeat: heartbeat} = state) do
+    pool
+    |> Pool.checkout()
+    |> Stats.record_heart(heartbeat)
 
     state
   end
@@ -92,14 +95,18 @@ defmodule Kiq.Reporter.Stats do
     state
   end
 
-  defp record_stats(%State{client: client} = state) do
-    :ok = Client.record_stats(client, failure: state.failure_count, success: state.success_count)
+  defp record_stats(%State{pool: pool} = state) do
+    pool
+    |> Pool.checkout()
+    |> Stats.record_stats(failure: state.failure_count, success: state.success_count)
 
     %State{state | failure_count: 0, success_count: 0}
   end
 
-  defp remove_heart(%State{client: client, heartbeat: heartbeat} = state) do
-    :ok = Client.remove_heart(client, heartbeat)
+  defp remove_heart(%State{pool: pool, heartbeat: heartbeat} = state) do
+    pool
+    |> Pool.checkout()
+    |> Stats.remove_heart(heartbeat)
 
     state
   end

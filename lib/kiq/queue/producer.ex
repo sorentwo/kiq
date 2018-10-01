@@ -3,10 +3,11 @@ defmodule Kiq.Queue.Producer do
 
   use GenStage
 
-  alias Kiq.Client
+  alias Kiq.Config
+  alias Kiq.Client.{Pool, Queueing}
 
   @type options :: [
-          client: identifier(),
+          config: Config.t(),
           demand: non_neg_integer(),
           poll_interval: non_neg_integer(),
           queue: binary()
@@ -15,8 +16,7 @@ defmodule Kiq.Queue.Producer do
   defmodule State do
     @moduledoc false
 
-    @enforce_keys [:client, :queue]
-    defstruct client: nil, demand: 0, poll_interval: 1_000, queue: nil
+    defstruct pool: nil, demand: 0, poll_interval: 1_000, queue: nil
   end
 
   @doc false
@@ -31,9 +31,11 @@ defmodule Kiq.Queue.Producer do
 
   @impl GenStage
   def init(opts) do
+    {conf, opts} = Keyword.pop(opts, :config)
+
     state =
       State
-      |> struct(opts)
+      |> struct(Keyword.put(opts, :pool, conf.pool_name))
       |> schedule_poll()
       |> schedule_resurrect()
 
@@ -51,8 +53,10 @@ defmodule Kiq.Queue.Producer do
     |> dispatch()
   end
 
-  def handle_info(:resurrect, %State{client: client, queue: queue} = state) do
-    :ok = Client.resurrect(client, queue)
+  def handle_info(:resurrect, %State{pool: pool, queue: queue} = state) do
+    pool
+    |> Pool.checkout()
+    |> Queueing.resurrect(queue)
 
     {:noreply, [], state}
   end
@@ -66,8 +70,11 @@ defmodule Kiq.Queue.Producer do
 
   # Helpers
 
-  defp dispatch(%State{client: client, demand: demand, queue: queue} = state) do
-    jobs = Client.dequeue(client, queue, demand)
+  defp dispatch(%State{pool: pool, demand: demand, queue: queue} = state) do
+    jobs =
+      pool
+      |> Pool.checkout()
+      |> Queueing.dequeue(queue, demand)
 
     {:noreply, jobs, %{state | demand: demand - length(jobs)}}
   end

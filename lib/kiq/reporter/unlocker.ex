@@ -3,12 +3,13 @@ defmodule Kiq.Reporter.Unlocker do
 
   use Kiq.Reporter
 
-  alias Kiq.{Client, Job, Reporter}
+  alias Kiq.{Job, Reporter}
+  alias Kiq.Client.{Cleanup, Pool}
 
   defmodule State do
     @moduledoc false
 
-    defstruct client: nil
+    defstruct pool: nil
   end
 
   # Callbacks
@@ -17,7 +18,7 @@ defmodule Kiq.Reporter.Unlocker do
   def init(opts) do
     {conf, opts} = Keyword.pop(opts, :config)
 
-    {:consumer, %State{client: conf.client_name}, opts}
+    {:consumer, %State{pool: conf.pool_name}, opts}
   end
 
   @impl Reporter
@@ -34,7 +35,9 @@ defmodule Kiq.Reporter.Unlocker do
 
   defp maybe_unlock(%Job{unique_token: token, unique_until: until} = job, until, state)
        when is_binary(token) do
-    :ok = Client.unlock_job(state.client, job)
+    state.pool
+    |> Pool.checkout()
+    |> Cleanup.unlock_job(job)
 
     state
   end

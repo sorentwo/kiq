@@ -75,6 +75,47 @@ defmodule Kiq.FakeProducer do
   end
 end
 
+defmodule Kiq.Integration do
+  use Kiq, queues: [integration: 3]
+
+  @impl Kiq
+  def init(_reason, opts) do
+    client_opts = [redis_url: Kiq.Case.redis_url()]
+
+    {:ok, Keyword.put(opts, :client_opts, client_opts)}
+  end
+end
+
+defmodule Kiq.Integration.Worker do
+  use Kiq.Worker, queue: "integration"
+
+  def perform([pid_bin, "FAILING_JOB"]) do
+    pid_bin
+    |> bin_to_pid()
+    |> send({:failed, "FAILING_JOB"})
+
+    raise "forced failing job"
+  end
+
+  def perform([pid_bin, value]) do
+    pid_bin
+    |> bin_to_pid()
+    |> send({:processed, value})
+  end
+
+  def pid_to_bin(pid \\ self()) do
+    pid
+    |> :erlang.term_to_binary()
+    |> Base.encode64()
+  end
+
+  def bin_to_pid(bin) do
+    bin
+    |> Base.decode64!()
+    |> :erlang.binary_to_term()
+  end
+end
+
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 
@@ -103,6 +144,15 @@ defmodule Kiq.Case do
     |> Keyword.put_new(:pid, make_ref())
     |> job()
     |> RunningJob.new()
+  end
+
+  def start_pool(_context) do
+    config = Kiq.Config.new(client_opts: [redis_url: redis_url(), pool_size: 1])
+
+    {:ok, _sup} = start_supervised({Kiq.Client.Supervisor, config: config})
+    {:ok, _pid} = start_supervised({Kiq.Client.Pool, config: config})
+
+    :ok
   end
 
   def redis_url do

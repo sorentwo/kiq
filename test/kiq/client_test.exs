@@ -13,7 +13,7 @@ defmodule Kiq.ClientTest do
 
   setup do
     config = Config.new(client_opts: [redis_url: redis_url(), pool_size: 1], pool_name: @pool_name)
-    redis_name = Pool.worker_name(config, 0)
+    redis_name = Pool.worker_name(@pool_name, 0)
 
     {:ok, pool} = start_supervised({Pool, config: config, name: @pool_name})
     {:ok, redis} = start_supervised({Redix, {redis_url(), name: redis_name}})
@@ -65,35 +65,6 @@ defmodule Kiq.ClientTest do
 
       assert 0 == Client.queue_size(client, @queue)
       assert 1 == Client.set_size(client, @schedule_set)
-    end
-
-    test "jobs with a unique_for value have a locked_key value", %{client: client, redis: redis} do
-      job = job(unique_for: :timer.seconds(5))
-
-      assert {:ok, %Job{unlocks_at: unlock, unique_token: token}} = Client.enqueue(client, job)
-      assert {:ok, value} = Redix.command(redis, ["GET", "unique:#{token}"])
-
-      assert_in_delta unlock, Timestamp.unix_in(5), 0.1
-      assert token =~ ~r/[a-z0-9]+/
-      assert value == to_string(unlock)
-    end
-
-    test "existing unique jobs aren't enqueued again", %{client: client} do
-      job_a = job(unique_for: :timer.seconds(2))
-      job_b = job(unique_for: :timer.seconds(4))
-
-      assert {:ok, %Job{unique_token: token}} = Client.enqueue(client, job_a)
-      assert {:ok, %Job{unique_token: ^token}} = Client.enqueue(client, job_b)
-
-      assert 1 == Client.queue_size(client, @queue)
-    end
-
-    test "uniqueness lasts until after a job is scheduled", %{client: client} do
-      job = job(at: Timestamp.unix_in(60), unique_for: :timer.seconds(5))
-
-      assert {:ok, %Job{unlocks_at: unlock}} = Client.enqueue(client, job)
-
-      assert_in_delta unlock, Timestamp.unix_in(65), 0.1
     end
   end
 

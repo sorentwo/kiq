@@ -18,8 +18,8 @@ defmodule Kiq.Client.PoolTest do
     test "a random connection pid is returned" do
       config = %Config{client_opts: [pool_size: 2]}
 
-      name_a = Pool.worker_name(config, 0)
-      name_b = Pool.worker_name(config, 1)
+      name_a = Pool.worker_name(config.pool_name, 0)
+      name_b = Pool.worker_name(config.pool_name, 1)
 
       {:ok, ppid} = start_supervised({Pool, config: config})
       {:ok, wpid_a} = start_supervised({DummyWorker, name: name_a}, id: name_a)

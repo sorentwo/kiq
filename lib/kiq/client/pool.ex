@@ -23,12 +23,12 @@ defmodule Kiq.Client.Pool do
   end
 
   @spec checkout(GenServer.server()) :: pid()
-  def checkout(server) do
+  def checkout(server \\ __MODULE__) do
     GenServer.call(server, :checkout)
   end
 
-  @spec worker_name(Config.t(), non_neg_integer()) :: module()
-  def worker_name(%Config{pool_name: pool_name}, index) do
+  @spec worker_name(binary() | atom(), non_neg_integer()) :: module()
+  def worker_name(pool_name, index) do
     Module.concat([pool_name, "N#{index}"])
   end
 
@@ -46,7 +46,7 @@ defmodule Kiq.Client.Pool do
     index = rem(System.unique_integer([:positive]), state.pool_size)
 
     pid =
-      state.config
+      state.config.pool_name
       |> worker_name(index)
       |> Process.whereis()
 

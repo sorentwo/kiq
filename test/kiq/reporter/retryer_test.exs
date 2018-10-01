@@ -1,15 +1,14 @@
 defmodule Kiq.Reporter.RetryerTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{Config, EchoClient, FakeProducer, Job}
+  alias Kiq.{Config, FakeProducer, Job}
   alias Kiq.Reporter.Retryer, as: Reporter
 
   @error %RuntimeError{message: "bad stuff happened"}
 
-  defp emit_event(event) do
-    {:ok, cli} = start_supervised({EchoClient, test_pid: self()})
+  defp emit_event(event, config \\ Config.new()) do
     {:ok, pro} = start_supervised({FakeProducer, events: [event]})
-    {:ok, con} = start_supervised({Reporter, config: %Config{client_name: cli}})
+    {:ok, con} = start_supervised({Reporter, config: config})
 
     GenStage.sync_subscribe(con, to: pro)
 
@@ -17,8 +16,9 @@ defmodule Kiq.Reporter.RetryerTest do
 
     :ok = stop_supervised(Reporter)
     :ok = stop_supervised(FakeProducer)
-    :ok = stop_supervised(EchoClient)
   end
+
+  setup :start_pool
 
   test "job start is safely ignored" do
     assert :ok = emit_event({:started, job()})
