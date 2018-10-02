@@ -52,4 +52,3 @@ defmodule Kiq.Integration.Worker do
     |> :erlang.binary_to_term()
   end
 end
-

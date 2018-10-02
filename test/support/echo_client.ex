@@ -20,4 +20,3 @@ defmodule Kiq.EchoClient do
     {:reply, :ok, state}
   end
 end
-

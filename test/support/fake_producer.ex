@@ -19,4 +19,3 @@ defmodule Kiq.FakeProducer do
     {:noreply, events, []}
   end
 end
-
