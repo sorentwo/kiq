@@ -3,8 +3,8 @@ defmodule Kiq.Reporter.Retryer do
 
   use Kiq.Reporter
 
-  alias Kiq.{Job, Reporter, Timestamp}
-  alias Kiq.Client.{Cleanup, Pool, Queueing}
+  alias Kiq.{Job, Pool, Reporter, Timestamp}
+  alias Kiq.Client.{Cleanup, Queueing}
 
   @default_max 25
 

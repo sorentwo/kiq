@@ -79,11 +79,13 @@ defmodule Kiq do
 
   ### Configuration Options
 
-  * `client_opts` — A keyword list of options provided for the Kiq client. This
-    is client specific, but for the default Redis adapter it must include
-    `redis_url`.
+  * `client_opts` — A keyword list of options passed to each Redix connection.
+    If the opts contain the key `redis_url` then it will be passed to
+    `Redix.start_link/1` as the lone argument.
   * `extra_reporters` — Additional reporters that your application will use to
     report errors, track external stats, etc. See [Error Handling][] for details.
+  * `pool_size` — Controls the number of Redis connections available to Kiq,
+    defaults to 5.
   * `queues` — A keyword list of queues where each entry is the name of the
     queue and the concurrency setting. For example, setting `[default: 10,
     exports: 5, media: 5]` would start the queues `default`, `exports` and

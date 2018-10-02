@@ -5,8 +5,6 @@ defmodule Kiq.Heartbeat do
 
   alias Kiq.{Job, RunningJob, Timestamp}
 
-  alias __MODULE__
-
   @type t :: %__MODULE__{
           busy: non_neg_integer(),
           concurrency: non_neg_integer(),

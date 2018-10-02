@@ -1,10 +1,9 @@
-defmodule Kiq.Client.Supervisor do
+defmodule Kiq.Pool.Supervisor do
   @moduledoc false
 
   use Supervisor
 
-  alias Kiq.Config
-  alias Kiq.Client.Pool
+  alias Kiq.{Config, Pool}
 
   @type options :: [config: Config.t(), name: GenServer.name()]
 
@@ -16,8 +15,7 @@ defmodule Kiq.Client.Supervisor do
   end
 
   @impl Supervisor
-  def init(config: %Config{client_opts: opts, pool_name: pool_name}) do
-    {size, opts} = Keyword.pop(opts, :pool_size, 5)
+  def init(config: %Config{client_opts: opts, pool_name: pool_name, pool_size: size}) do
     {host, opts} = Keyword.pop(opts, :redis_url)
 
     children =

@@ -1,8 +1,8 @@
 defmodule Kiq.Integration.UniqueJobsTest do
   use Kiq.Case
 
-  alias Kiq.{Integration, Timestamp}
-  alias Kiq.Client.{Introspection, Pool}
+  alias Kiq.{Integration, Pool, Timestamp}
+  alias Kiq.Client.Introspection
 
   @moduletag :capture_log
 

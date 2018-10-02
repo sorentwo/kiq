@@ -1,8 +1,8 @@
 defmodule Kiq.Integration.RecordingStatsTest do
   use Kiq.Case
 
-  alias Kiq.Integration
-  alias Kiq.Client.{Introspection, Pool}
+  alias Kiq.{Integration, Pool}
+  alias Kiq.Client.Introspection
 
   @identity "ident:1234"
 

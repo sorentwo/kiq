@@ -16,8 +16,8 @@ defmodule Kiq.SupervisorTest do
       children = for {name, _pid, _type, _id} <- Supervisor.which_children(sup), do: name
 
       assert Kiq.Client in children
-      assert Kiq.Client.Pool in children
-      assert Kiq.Client.Supervisor in children
+      assert Kiq.Pool in children
+      assert Kiq.Pool.Supervisor in children
       assert Kiq.Reporter.Supervisor in children
       assert Kiq.Queue.Default in children
       assert Kiq.Queue.Priority in children

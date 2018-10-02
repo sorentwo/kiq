@@ -1,8 +1,7 @@
-defmodule Kiq.Client.PoolTest do
+defmodule Kiq.PoolTest do
   use Kiq.Case, async: true
 
-  alias Kiq.Config
-  alias Kiq.Client.Pool
+  alias Kiq.{Config, Pool}
 
   defmodule DummyWorker do
     use GenServer
@@ -16,8 +15,7 @@ defmodule Kiq.Client.PoolTest do
 
   describe "checkout/1" do
     test "a random connection pid is returned" do
-      config = %Config{client_opts: [pool_size: 2]}
-
+      config = %Config{pool_size: 2}
       name_a = Pool.worker_name(config.pool_name, 0)
       name_b = Pool.worker_name(config.pool_name, 1)
 

@@ -3,8 +3,8 @@ defmodule Kiq.Reporter.Unlocker do
 
   use Kiq.Reporter
 
-  alias Kiq.{Job, Reporter}
-  alias Kiq.Client.{Cleanup, Pool}
+  alias Kiq.{Job, Pool, Reporter}
+  alias Kiq.Client.Cleanup
 
   defmodule State do
     @moduledoc false

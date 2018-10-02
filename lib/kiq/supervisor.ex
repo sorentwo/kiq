@@ -3,9 +3,8 @@ defmodule Kiq.Supervisor do
 
   use Supervisor
 
-  alias Kiq.Config
-  alias Kiq.Client.Pool
-  alias Kiq.Client.Supervisor, as: ClientSupervisor
+  alias Kiq.{Client, Config, Pool}
+  alias Kiq.Pool.Supervisor, as: PoolSupervisor
   alias Kiq.Queue.Scheduler
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
   alias Kiq.Reporter.Supervisor, as: ReporterSupervisor
@@ -43,10 +42,12 @@ defmodule Kiq.Supervisor do
   ## Helpers
 
   defp client_children(config) do
+    supervisor_name = Module.concat([config.pool_name, "Supervisor"])
+
     [
-      {ClientSupervisor, config: config},
+      {PoolSupervisor, config: config, name: supervisor_name},
       {Pool, config: config, name: config.pool_name},
-      {config.client, config: config, name: config.client_name}
+      {Client, config: config, name: config.client_name}
     ]
   end
 

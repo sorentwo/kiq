@@ -3,8 +3,8 @@ defmodule Kiq.Reporter.Stats do
 
   use Kiq.Reporter
 
-  alias Kiq.{Heartbeat, Reporter}
-  alias Kiq.Client.{Pool, Stats}
+  alias Kiq.{Heartbeat, Pool, Reporter}
+  alias Kiq.Client.Stats
 
   defmodule State do
     @moduledoc false

@@ -3,8 +3,8 @@ defmodule Kiq.Queue.Producer do
 
   use GenStage
 
-  alias Kiq.Config
-  alias Kiq.Client.{Pool, Queueing}
+  alias Kiq.{Config, Pool}
+  alias Kiq.Client.Queueing
 
   @type options :: [
           config: Config.t(),

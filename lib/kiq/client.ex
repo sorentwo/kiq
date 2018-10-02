@@ -3,8 +3,8 @@ defmodule Kiq.Client do
 
   use GenServer
 
-  alias Kiq.{Config, Job}
-  alias Kiq.Client.{Cleanup, Introspection, Pool, Queueing}
+  alias Kiq.{Config, Pool, Job}
+  alias Kiq.Client.{Cleanup, Introspection, Queueing}
 
   @type client :: GenServer.server()
   @type queue :: binary()

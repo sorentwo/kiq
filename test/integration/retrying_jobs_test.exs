@@ -1,8 +1,8 @@
 defmodule Kiq.Integration.RetryingJobsTest do
   use Kiq.Case
 
-  alias Kiq.Integration
-  alias Kiq.Client.{Introspection, Pool}
+  alias Kiq.{Integration, Pool}
+  alias Kiq.Client.Introspection
 
   @moduletag :capture_log
 
