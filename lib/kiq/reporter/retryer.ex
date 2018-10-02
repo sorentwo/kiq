@@ -3,14 +3,15 @@ defmodule Kiq.Reporter.Retryer do
 
   use Kiq.Reporter
 
-  alias Kiq.{Client, Job, Reporter, Timestamp}
+  alias Kiq.{Job, Pool, Reporter, Timestamp}
+  alias Kiq.Client.{Cleanup, Queueing}
 
   @default_max 25
 
   defmodule State do
     @moduledoc false
 
-    defstruct client: nil
+    defstruct pool: nil
   end
 
   # Callbacks
@@ -19,7 +20,7 @@ defmodule Kiq.Reporter.Retryer do
   def init(opts) do
     {conf, opts} = Keyword.pop(opts, :config)
 
-    {:consumer, %State{client: conf.client_name}, opts}
+    {:consumer, %State{pool: conf.pool_name}, opts}
   end
 
   @impl Reporter
@@ -34,15 +35,19 @@ defmodule Kiq.Reporter.Retryer do
         |> Map.replace!(:error_class, error_name(error))
         |> Map.replace!(:error_message, Exception.message(error))
 
-      Client.retry(state.client, job)
+      state.pool
+      |> Pool.checkout()
+      |> Queueing.retry(job)
     end
 
     state
   end
 
   @impl Reporter
-  def handle_stopped(%Job{} = job, %State{client: client} = state) do
-    :ok = Client.remove_backup(client, job)
+  def handle_stopped(%Job{} = job, state) do
+    state.pool
+    |> Pool.checkout()
+    |> Cleanup.remove_backup(job)
 
     state
   end

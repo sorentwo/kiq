@@ -10,6 +10,7 @@ defmodule Kiq.MixProject do
       app: :kiq,
       version: @version,
       elixir: "~> 1.6",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
 
@@ -42,6 +43,9 @@ defmodule Kiq.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
+
   def package do
     [
       maintainers: ["Parker Selbert"],
@@ -54,7 +58,7 @@ defmodule Kiq.MixProject do
     [
       {:jason, "~> 1.1"},
       {:gen_stage, "~> 0.14"},
-      {:redix, "~> 0.7"},
+      {:redix, "~> 0.8"},
       {:benchee, "~> 0.13", only: [:dev], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false},

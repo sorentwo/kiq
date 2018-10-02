@@ -3,7 +3,7 @@ defmodule Kiq.Config do
 
   import Kiq.Identity, only: [identity: 0]
 
-  alias Kiq.{Client, Reporter}
+  alias Kiq.{Client, Pool, Reporter}
   alias Kiq.Reporter.{Logger, Retryer, Stats, Unlocker}
 
   @type queue_name :: atom() | binary()
@@ -11,11 +11,12 @@ defmodule Kiq.Config do
   @type queue_config :: {queue_name(), queue_size()}
 
   @type t :: %__MODULE__{
-          client: GenServer.server(),
           client_name: term(),
           client_opts: Keyword.t(),
           extra_reporters: list(module()),
           identity: binary(),
+          pool_name: term(),
+          pool_size: pos_integer(),
           queues: list(queue_config()),
           reporter_name: term(),
           reporters: list(module()),
@@ -23,12 +24,13 @@ defmodule Kiq.Config do
           server?: boolean()
         }
 
-  defstruct client: Client,
-            client_name: Client,
+  defstruct client_name: Client,
             client_opts: [],
             extra_reporters: [],
             queues: [default: 25],
             identity: nil,
+            pool_name: Pool,
+            pool_size: 5,
             reporter_name: Reporter,
             reporters: [Logger, Retryer, Stats, Unlocker],
             schedulers: ~w(retry schedule),

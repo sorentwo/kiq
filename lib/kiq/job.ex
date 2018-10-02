@@ -52,7 +52,7 @@ defmodule Kiq.Job do
           queue: binary(),
           retry: boolean() | non_neg_integer(),
           retry_count: non_neg_integer(),
-          at: Timestamp.t(),
+          at: nil | Timestamp.t(),
           created_at: Timestamp.t(),
           enqueued_at: Timestamp.t(),
           failed_at: Timestamp.t(),
@@ -60,11 +60,11 @@ defmodule Kiq.Job do
           error_message: binary(),
           error_class: binary(),
           expires_in: pos_integer(),
-          expires_at: Timestamp.t(),
+          expires_at: nil | Timestamp.t(),
           unique_for: pos_integer(),
           unique_until: binary(),
           unique_token: binary(),
-          unlocks_at: Timestamp.t()
+          unlocks_at: nil | Timestamp.t()
         }
 
   @enforce_keys ~w(jid class)a
@@ -173,11 +173,13 @@ defmodule Kiq.Job do
 
   During the encoding process any keys with `nil` values are removed.
   """
-  @spec encode(job :: t()) :: binary()
+  @spec encode(job :: t()) :: binary() | {:error, Exception.t()}
   def encode(%__MODULE__{} = job) do
-    job
-    |> to_map()
-    |> Jason.encode!()
+    map = to_map(job)
+
+    with {:ok, encoded} <- Jason.encode(map) do
+      encoded
+    end
   end
 
   @doc """
@@ -196,11 +198,11 @@ defmodule Kiq.Job do
       ...> Map.get(job, :args)
       %{a: 1}
   """
-  @spec decode(input :: binary()) :: t()
+  @spec decode(input :: binary()) :: t() | {:error, Exception.t()}
   def decode(input) when is_binary(input) do
-    input
-    |> Jason.decode!(keys: :atoms)
-    |> new()
+    with {:ok, decoded} <- Jason.decode(input, keys: :atoms) do
+      new(decoded)
+    end
   end
 
   @doc false
@@ -216,7 +218,7 @@ defmodule Kiq.Job do
   @doc false
   @spec apply_expiry(job :: t()) :: t()
   def apply_expiry(%__MODULE__{expires_in: expires_in} = job) when is_integer(expires_in) do
-    %__MODULE__{job | expires_at: future_at(job.at, expires_in)}
+    %{job | expires_at: future_at(job.at, expires_in)}
   end
 
   def apply_expiry(job), do: job
@@ -224,7 +226,7 @@ defmodule Kiq.Job do
   @doc false
   @spec apply_unique(job :: t()) :: t()
   def apply_unique(%__MODULE__{unique_for: unique_for} = job) when is_integer(unique_for) do
-    %__MODULE__{job | unlocks_at: future_at(job.at, unique_for), unique_token: unique_token(job)}
+    %{job | unlocks_at: future_at(job.at, unique_for), unique_token: unique_token(job)}
   end
 
   def apply_unique(job), do: job

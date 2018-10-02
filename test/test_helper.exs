@@ -1,84 +1,12 @@
 Logger.configure(level: :info)
 Logger.configure_backend(:console, format: "$message\n")
 
-ExUnit.start()
-
-defmodule Kiq.EchoClient do
-  use GenServer
-
-  def start_link(opts) do
-    {name, opts} =
-      opts
-      |> Keyword.put_new(:test_pid, self())
-      |> Keyword.pop(:name)
-
-    GenServer.start_link(__MODULE__, opts, name: name)
-  end
-
-  def init(opts) do
-    {:ok, opts}
-  end
-
-  def handle_call(message, _from, state) do
-    send(state[:test_pid], message)
-
-    {:reply, :ok, state}
-  end
-end
-
-defmodule Kiq.EchoConsumer do
-  use GenStage
-
-  def start_link(opts) do
-    {name, opts} =
-      opts
-      |> Keyword.put_new(:test_pid, self())
-      |> Keyword.pop(:name)
-
-    GenStage.start_link(__MODULE__, opts, name: name)
-  end
-
-  def init(opts) do
-    {args, opts} = Keyword.split(opts, [:config, :test_pid])
-
-    {:consumer, args, opts}
-  end
-
-  def handle_events(events, _from, state) do
-    test_pid = Keyword.fetch!(state, :test_pid)
-
-    for event <- events, do: send(test_pid, event)
-
-    {:noreply, [], state}
-  end
-end
-
-defmodule Kiq.FakeProducer do
-  use GenStage
-
-  def start_link(opts) do
-    GenStage.start_link(__MODULE__, opts)
-  end
-
-  def init(events: events) do
-    {:producer, events}
-  end
-
-  def handle_call(_message, from, state) do
-    GenStage.reply(from, :ok)
-
-    {:noreply, [], state}
-  end
-
-  def handle_demand(_demand, events) do
-    {:noreply, events, []}
-  end
-end
+ExUnit.start(assert_receive_timeout: 1500, refute_receive_timeout: 1500)
 
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 
-  alias Kiq.{Job, RunningJob}
+  alias Kiq.Job
 
   using do
     quote do
@@ -98,14 +26,35 @@ defmodule Kiq.Case do
     |> Job.encode()
   end
 
-  def running_job(args \\ []) do
-    args
-    |> Keyword.put_new(:pid, make_ref())
-    |> job()
-    |> RunningJob.new()
+  def enqueue_job(value, opts \\ []) do
+    pid_bin = Kiq.Integration.Worker.pid_to_bin()
+
+    [pid_bin, value]
+    |> Kiq.Integration.Worker.new()
+    |> Map.merge(Map.new(opts))
+    |> Kiq.Integration.enqueue()
   end
 
   def redis_url do
     System.get_env("REDIS_URL") || "redis://localhost:6379/3"
+  end
+
+  def with_backoff(opts \\ [], fun) do
+    with_backoff(fun, 0, Keyword.get(opts, :total, 20))
+  end
+
+  def with_backoff(fun, count, total) do
+    try do
+      fun.()
+    rescue
+      exception in [ExUnit.AssertionError] ->
+        if count < total do
+          Process.sleep(50)
+
+          with_backoff(fun, count + 1, total)
+        else
+          reraise(exception, __STACKTRACE__)
+        end
+    end
   end
 end
