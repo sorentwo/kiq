@@ -1,7 +1,7 @@
 defmodule Kiq.Client.Queueing do
   @moduledoc false
 
-  import Redix, only: [command: 2, pipeline: 2]
+  import Redix, only: [command: 2, noreply_command: 2, noreply_pipeline: 2, pipeline: 2]
 
   alias Kiq.{Job, Timestamp}
 
@@ -37,7 +37,7 @@ defmodule Kiq.Client.Queueing do
 
   @spec dequeue(conn(), binary(), pos_integer()) :: list(iodata())
   def dequeue(conn, queue, count) when is_binary(queue) and is_integer(count) do
-    commands = for _ <- 1..count, do: ["RPOPLPUSH", queue_name(queue), backup_name(queue)]
+    commands = List.duplicate(["RPOPLPUSH", queue_name(queue), backup_name(queue)], count)
 
     {:ok, results} = pipeline(conn, commands)
 
@@ -64,9 +64,9 @@ defmodule Kiq.Client.Queueing do
   @spec resurrect(conn(), binary()) :: :ok
   def resurrect(conn, queue) when is_binary(queue) do
     with {:ok, count} when count > 0 <- command(conn, ["LLEN", backup_name(queue)]) do
-      commands = for _ <- 1..count, do: ["RPOPLPUSH", backup_name(queue), queue_name(queue)]
+      commands = List.duplicate(["RPOPLPUSH", backup_name(queue), queue_name(queue)], count)
 
-      {:ok, _results} = pipeline(conn, commands)
+      :ok = noreply_pipeline(conn, commands)
     end
 
     :ok
@@ -83,7 +83,14 @@ defmodule Kiq.Client.Queueing do
   defp check_unique(%{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
     unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)
 
-    command = ["SET", unlock_name(job.unique_token), unlocks_at, "PX", unlocks_in, "NX"]
+    command = [
+      "SET",
+      unlock_name(job.unique_token),
+      to_string(unlocks_at),
+      "PX",
+      to_string(unlocks_in),
+      "NX"
+    ]
 
     case command(conn, command) do
       {:ok, "OK"} -> {:ok, job}
@@ -97,11 +104,13 @@ defmodule Kiq.Client.Queueing do
     job = %Job{job | enqueued_at: Timestamp.unix_now()}
 
     commands = [
+      ["MULTI"],
       ["SADD", "queues", queue],
-      ["LPUSH", queue_name(queue), Job.encode(job)]
+      ["LPUSH", queue_name(queue), Job.encode(job)],
+      ["EXEC"]
     ]
 
-    {:ok, _result} = pipeline(conn, commands)
+    :ok = noreply_pipeline(conn, commands)
 
     {:ok, job}
   end
@@ -109,7 +118,7 @@ defmodule Kiq.Client.Queueing do
   defp schedule_job(%Job{at: at} = job, set, conn) do
     score = Timestamp.to_score(at)
 
-    {:ok, _result} = command(conn, ["ZADD", set, score, Job.encode(job)])
+    :ok = noreply_command(conn, ["ZADD", set, score, Job.encode(job)])
 
     {:ok, job}
   end

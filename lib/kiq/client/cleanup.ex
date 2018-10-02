@@ -1,15 +1,16 @@
 defmodule Kiq.Client.Cleanup do
   @moduledoc false
 
-  import Redix, only: [command: 2]
+  import Redix, only: [command: 2, noreply_command: 2]
 
   alias Kiq.Job
 
   @typep conn :: GenServer.server()
+  @typep resp :: :ok | {:error, atom() | Redix.Error.t()}
 
   @static_keys ["retry", "schedule", "processes"]
 
-  @spec clear_all(conn()) :: :ok
+  @spec clear_all(conn()) :: resp()
   def clear_all(conn) do
     {:ok, queues} = command(conn, ["KEYS", "queue*"])
     {:ok, unique} = command(conn, ["KEYS", "unique:*"])
@@ -17,22 +18,16 @@ defmodule Kiq.Client.Cleanup do
 
     keys = @static_keys ++ queues ++ unique ++ stats
 
-    {:ok, _reply} = command(conn, ["DEL" | keys])
-
-    :ok
+    noreply_command(conn, ["DEL" | keys])
   end
 
-  @spec remove_backup(conn(), Job.t()) :: :ok
+  @spec remove_backup(conn(), Job.t()) :: resp()
   def remove_backup(conn, %Job{queue: queue} = job) do
-    {:ok, _result} = command(conn, ["LREM", "queue:#{queue}:backup", "0", Job.encode(job)])
-
-    :ok
+    noreply_command(conn, ["LREM", "queue:#{queue}:backup", "0", Job.encode(job)])
   end
 
-  @spec unlock_job(conn(), Job.t()) :: :ok
+  @spec unlock_job(conn(), Job.t()) :: resp()
   def unlock_job(conn, %Job{unique_token: token}) do
-    {:ok, _result} = command(conn, ["DEL", "unique:#{token}"])
-
-    :ok
+    noreply_command(conn, ["DEL", "unique:#{token}"])
   end
 end

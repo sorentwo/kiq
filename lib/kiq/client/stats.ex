@@ -1,12 +1,12 @@
 defmodule Kiq.Client.Stats do
   @moduledoc false
 
-  import Redix, only: [pipeline: 2]
+  import Redix, only: [noreply_pipeline: 2]
 
   alias Kiq.{Heartbeat, RunningJob, Timestamp}
 
   @typep conn :: GenServer.server()
-  @typep resp :: :ok | {:error, atom()}
+  @typep resp :: :ok | {:error, atom() | Redix.Error.t()}
 
   @spec record_heart(conn(), Heartbeat.t()) :: resp()
   def record_heart(conn, %Heartbeat{} = heartbeat) do
@@ -19,7 +19,8 @@ defmodule Kiq.Client.Stats do
     commands = [
       ["MULTI"],
       ["SADD", "processes", key],
-      ["HMSET", key, "info", info, "beat", beat, "busy", busy, "quiet", quiet],
+      ["HMSET", key, "info", info, "beat", to_string(beat)],
+      ["HMSET", key, "busy", to_string(busy), "quiet", to_string(quiet)],
       ["EXPIRE", key, "60"],
       ["DEL", wkey],
       ["HMSET" | [wkey | Enum.flat_map(running, &running_detail/1)]],
@@ -27,10 +28,10 @@ defmodule Kiq.Client.Stats do
       ["EXEC"]
     ]
 
-    with {:ok, _result} <- pipeline(conn, commands), do: :ok
+    noreply_pipeline(conn, commands)
   end
 
-  @spec record_stats(conn(), Keyword.t()) :: :ok
+  @spec record_stats(conn(), Keyword.t()) :: resp()
   def record_stats(conn, stats) when is_list(stats) do
     date = Timestamp.date_now()
     processed = Keyword.fetch!(stats, :success)
@@ -45,20 +46,16 @@ defmodule Kiq.Client.Stats do
       ["EXEC"]
     ]
 
-    {:ok, _result} = pipeline(conn, commands)
-
-    :ok
+    noreply_pipeline(conn, commands)
   end
 
-  @spec remove_heart(conn(), Heartbeat.t()) :: :ok
+  @spec remove_heart(conn(), Heartbeat.t()) :: resp()
   def remove_heart(conn, %Heartbeat{} = heartbeat) do
     %Heartbeat{identity: key} = heartbeat
 
     commands = [["SREM", "processes", key], ["DEL", "#{key}:workers"]]
 
-    {:ok, _result} = pipeline(conn, commands)
-
-    :ok
+    noreply_pipeline(conn, commands)
   end
 
   # Helpers

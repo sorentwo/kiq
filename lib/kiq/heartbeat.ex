@@ -8,6 +8,7 @@ defmodule Kiq.Heartbeat do
   alias __MODULE__
 
   @type t :: %__MODULE__{
+          busy: non_neg_integer(),
           concurrency: non_neg_integer(),
           hostname: :inet.hostname(),
           identity: binary(),
@@ -25,8 +26,8 @@ defmodule Kiq.Heartbeat do
 
   defstruct busy: 0,
             concurrency: 0,
-            identity: nil,
             hostname: nil,
+            identity: nil,
             labels: [],
             pid: nil,
             queues: [],
@@ -63,7 +64,7 @@ defmodule Kiq.Heartbeat do
   def add_running(%__MODULE__{running: running} = heartbeat, %Job{jid: jid} = job) do
     running = Map.put_new(running, jid, RunningJob.new(job))
 
-    %Heartbeat{heartbeat | busy: map_size(running), running: running}
+    %{heartbeat | busy: map_size(running), running: running}
   end
 
   @doc false
@@ -71,7 +72,7 @@ defmodule Kiq.Heartbeat do
   def rem_running(%__MODULE__{running: running} = heartbeat, %Job{jid: jid}) do
     running = Map.delete(running, jid)
 
-    %Heartbeat{heartbeat | busy: map_size(running), running: running}
+    %{heartbeat | busy: map_size(running), running: running}
   end
 
   ## Helpers

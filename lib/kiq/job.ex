@@ -52,7 +52,7 @@ defmodule Kiq.Job do
           queue: binary(),
           retry: boolean() | non_neg_integer(),
           retry_count: non_neg_integer(),
-          at: Timestamp.t(),
+          at: nil | Timestamp.t(),
           created_at: Timestamp.t(),
           enqueued_at: Timestamp.t(),
           failed_at: Timestamp.t(),
@@ -60,11 +60,11 @@ defmodule Kiq.Job do
           error_message: binary(),
           error_class: binary(),
           expires_in: pos_integer(),
-          expires_at: Timestamp.t(),
+          expires_at: nil | Timestamp.t(),
           unique_for: pos_integer(),
           unique_until: binary(),
           unique_token: binary(),
-          unlocks_at: Timestamp.t()
+          unlocks_at: nil | Timestamp.t()
         }
 
   @enforce_keys ~w(jid class)a

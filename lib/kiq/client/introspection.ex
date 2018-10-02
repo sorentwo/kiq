@@ -68,12 +68,12 @@ defmodule Kiq.Client.Introspection do
     %{processed: to_int.(proc_count), failed: to_int.(fail_count)}
   end
 
-  @spec heartbeat(conn(), identity()) :: Map.t()
+  @spec heartbeat(conn(), identity()) :: map()
   def heartbeat(conn, identity) when is_binary(identity) do
     hash_to_map(conn, identity)
   end
 
-  @spec workers(conn(), identity()) :: Map.t()
+  @spec workers(conn(), identity()) :: map()
   def workers(conn, identity) when is_binary(identity) do
     hash_to_map(conn, "#{identity}:workers")
   end
