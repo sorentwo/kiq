@@ -67,7 +67,7 @@ defmodule Kiq.Case do
 
           with_backoff(fun, count + 1, total)
         else
-          reraise(exception, __STACKTRACE__)
+          reraise(exception, System.stacktrace())
         end
     end
   end
