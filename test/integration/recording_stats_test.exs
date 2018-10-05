@@ -6,57 +6,51 @@ defmodule Kiq.Integration.RecordingStatsTest do
 
   @identity "ident:1234"
 
-  @moduletag :capture_log
+  test "heartbeat process information is recorded for in-process jobs" do
+    capture_integration([identity: @identity], fn ->
+      conn = Pool.checkout(Integration.Pool)
 
-  setup_all do
-    start_supervised!({Integration, identity: @identity})
+      enqueue_job("SLOW")
 
-    :ok
-  end
+      assert_receive :started
 
-  setup do
-    :ok = Integration.clear_all()
+      with_backoff(fn ->
+        assert Introspection.alive?(conn, @identity)
+      end)
 
-    {:ok, conn: Pool.checkout(Integration.Pool)}
-  end
+      heartbeat = Introspection.heartbeat(conn, @identity)
 
-  test "heartbeat process information is recorded for in-process jobs", %{conn: conn} do
-    enqueue_job("SLOW")
+      assert %{beat: beat, busy: 1, quiet: false} = heartbeat
+      assert %{info: %{identity: @identity, queues: ["integration"]}} = heartbeat
 
-    assert_receive :started
+      [details] =
+        conn
+        |> Introspection.workers(@identity)
+        |> Map.values()
 
-    with_backoff(fn ->
-      assert Introspection.alive?(conn, @identity)
+      assert %{queue: "integration", payload: payload, run_at: _} = details
+      assert %{jid: _jid, class: _class, retry: _retry} = payload
+
+      assert_receive :stopped
     end)
-
-    heartbeat = Introspection.heartbeat(conn, @identity)
-
-    assert %{beat: beat, busy: 1, quiet: false} = heartbeat
-    assert %{info: %{identity: @identity, queues: ["integration"]}} = heartbeat
-
-    [details] =
-      conn
-      |> Introspection.workers(@identity)
-      |> Map.values()
-
-    assert %{queue: "integration", payload: payload, run_at: _} = details
-    assert %{jid: _jid, class: _class, retry: _retry} = payload
-
-    assert_receive :stopped
   end
 
-  test "stats for completed jobs are recorded", %{conn: conn} do
-    enqueue_job("PASS")
-    enqueue_job("PASS")
-    enqueue_job("FAIL")
+  test "stats for completed jobs are recorded" do
+    capture_integration(fn ->
+      conn = Pool.checkout(Integration.Pool)
 
-    assert_receive :failed
+      enqueue_job("PASS")
+      enqueue_job("PASS")
+      enqueue_job("FAIL")
 
-    with_backoff(fn ->
-      %{processed: new_proc, failed: new_fail} = Introspection.job_stats(conn)
+      assert_receive :failed
 
-      assert new_proc >= 2
-      assert new_fail >= 1
+      with_backoff(fn ->
+        %{processed: new_proc, failed: new_fail} = Introspection.job_stats(conn)
+
+        assert new_proc >= 2
+        assert new_fail >= 1
+      end)
     end)
   end
 end

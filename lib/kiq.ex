@@ -84,6 +84,8 @@ defmodule Kiq do
     `Redix.start_link/1` as the lone argument.
   * `extra_reporters` — Additional reporters that your application will use to
     report errors, track external stats, etc. See [Error Handling][] for details.
+  * `fetch_interval` — How frequently to poll for new jobs. Polling only
+    happens when consumers aren't actively requesting new jobs.
   * `pool_size` — Controls the number of Redis connections available to Kiq,
     defaults to 5.
   * `queues` — A keyword list of queues where each entry is the name of the

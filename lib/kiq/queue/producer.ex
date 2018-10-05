@@ -9,14 +9,14 @@ defmodule Kiq.Queue.Producer do
   @type options :: [
           config: Config.t(),
           demand: non_neg_integer(),
-          poll_interval: non_neg_integer(),
+          fetch_interval: non_neg_integer(),
           queue: binary()
         ]
 
   defmodule State do
     @moduledoc false
 
-    defstruct pool: nil, demand: 0, poll_interval: 1_000, queue: nil
+    defstruct pool: nil, demand: 0, fetch_interval: 500, queue: nil
   end
 
   @doc false
@@ -33,10 +33,15 @@ defmodule Kiq.Queue.Producer do
   def init(opts) do
     {conf, opts} = Keyword.pop(opts, :config)
 
+    opts =
+      opts
+      |> Keyword.put(:pool, conf.pool_name)
+      |> Keyword.put(:fetch_interval, conf.fetch_interval)
+
     state =
       State
-      |> struct(Keyword.put(opts, :pool, conf.pool_name))
-      |> schedule_poll()
+      |> struct(opts)
+      |> schedule_fetch()
       |> schedule_resurrect()
 
     {:producer, state}
@@ -47,9 +52,9 @@ defmodule Kiq.Queue.Producer do
     {:noreply, [], state}
   end
 
-  def handle_info(:poll, state) do
+  def handle_info(:fetch, state) do
     state
-    |> schedule_poll()
+    |> schedule_fetch()
     |> dispatch()
   end
 
@@ -63,7 +68,7 @@ defmodule Kiq.Queue.Producer do
 
   @impl GenStage
   def handle_demand(demand, %State{demand: buffered_demand} = state) do
-    schedule_poll(state)
+    schedule_fetch(state)
 
     dispatch(%{state | demand: demand + buffered_demand})
   end
@@ -83,13 +88,13 @@ defmodule Kiq.Queue.Producer do
     trunc(interval / 2 + interval * :rand.uniform())
   end
 
-  defp schedule_poll(%State{poll_interval: interval} = state) do
-    Process.send_after(self(), :poll, jitter(interval))
+  defp schedule_fetch(%State{fetch_interval: interval} = state) do
+    Process.send_after(self(), :fetch, jitter(interval))
 
     state
   end
 
-  defp schedule_resurrect(%State{poll_interval: interval} = state) do
+  defp schedule_resurrect(%State{fetch_interval: interval} = state) do
     Process.send_after(self(), :resurrect, jitter(interval))
 
     state
