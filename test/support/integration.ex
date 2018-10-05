@@ -1,5 +1,5 @@
 defmodule Kiq.Integration do
-  use Kiq, queues: [integration: 3], pool_size: 1
+  use Kiq, fetch_interval: 50, queues: [integration: 3], pool_size: 1
 
   @impl Kiq
   def init(_reason, opts) do
