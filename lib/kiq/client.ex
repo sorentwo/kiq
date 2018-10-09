@@ -30,23 +30,6 @@ defmodule Kiq.Client do
     GenServer.call(client, {:enqueue, job})
   end
 
-  @spec dequeue(client(), queue(), pos_integer()) :: list(iodata())
-  def dequeue(_client, _queue, 0), do: []
-
-  def dequeue(client, queue, count) when is_binary(queue) and is_integer(count) do
-    GenServer.call(client, {:dequeue, queue, count})
-  end
-
-  @spec deschedule(client(), set()) :: :ok
-  def deschedule(client, set) when is_binary(set) do
-    GenServer.call(client, {:deschedule, set})
-  end
-
-  @spec resurrect(client(), queue()) :: :ok
-  def resurrect(client, queue) when is_binary(queue) do
-    GenServer.call(client, {:resurrect, queue})
-  end
-
   ## Introspection
 
   @spec jobs(client(), queue()) :: list(Job.t())
@@ -78,23 +61,9 @@ defmodule Kiq.Client do
     {:ok, %State{pool: pool_name}}
   end
 
-  ## Enqueuing | Dequeuing
-
   @impl GenServer
   def handle_call({:enqueue, job}, _from, %State{pool: pool} = state) do
     {:reply, Queueing.enqueue(conn(pool), job), state}
-  end
-
-  def handle_call({:dequeue, queue, count}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.dequeue(conn(pool), queue, count), state}
-  end
-
-  def handle_call({:deschedule, set}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.deschedule(conn(pool), set), state}
-  end
-
-  def handle_call({:resurrect, queue}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.resurrect(conn(pool), queue), state}
   end
 
   ## Introspection

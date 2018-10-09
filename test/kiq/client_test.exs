@@ -67,47 +67,4 @@ defmodule Kiq.ClientTest do
       assert 1 == Client.set_size(client, @schedule_set)
     end
   end
-
-  describe "dequeue/3" do
-    test "multiple jobs are returned and pushed into backup", %{client: client, redis: redis} do
-      assert {:ok, _job} = Client.enqueue(client, job(args: [1]))
-      assert {:ok, _job} = Client.enqueue(client, job(args: [2]))
-      assert {:ok, _job} = Client.enqueue(client, job(args: [3]))
-
-      assert [json_a, json_b] = Client.dequeue(client, @queue, 2)
-
-      assert %Job{args: [1]} = Job.decode(json_a)
-      assert %Job{args: [2]} = Job.decode(json_b)
-
-      assert {:ok, 1} = Redix.command(redis, ["LLEN", @queue_list])
-      assert {:ok, 2} = Redix.command(redis, ["LLEN", @backup_list])
-    end
-  end
-
-  describe "deschedule/2" do
-    test "previously scheduled jobs are enqueued", %{client: client} do
-      assert {:ok, _job} = Client.enqueue(client, job(at: Timestamp.unix_in(-1)))
-      assert {:ok, _job} = Client.enqueue(client, job(at: Timestamp.unix_in(1)))
-
-      assert :ok = Client.deschedule(client, @schedule_set)
-
-      assert 1 == Client.queue_size(client, @queue)
-      assert 1 == Client.set_size(client, @schedule_set)
-    end
-  end
-
-  describe "resurrect/2" do
-    test "backup jobs are restored to their original queue", %{client: client, redis: redis} do
-      job_a = job(args: [1])
-      job_b = job(args: [2])
-
-      assert {:ok, _res} = Redix.command(redis, ["LPUSH", @backup_list, Job.encode(job_a)])
-      assert {:ok, _res} = Redix.command(redis, ["LPUSH", @backup_list, Job.encode(job_b)])
-
-      assert :ok = Client.resurrect(client, @queue)
-
-      assert {:ok, 2} = Redix.command(redis, ["LLEN", @queue_list])
-      assert {:ok, 0} = Redix.command(redis, ["LLEN", @backup_list])
-    end
-  end
 end

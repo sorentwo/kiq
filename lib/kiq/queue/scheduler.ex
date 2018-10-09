@@ -3,20 +3,20 @@ defmodule Kiq.Queue.Scheduler do
 
   use GenServer
 
-  alias Kiq.Client
+  alias Kiq.Config
+  alias Kiq.Client.Queueing
 
   @type options :: [
-          client: identifier(),
+          config: Config.t(),
           name: any(),
-          poll_interval: pos_integer(),
+          fetch_interval: pos_integer(),
           set: binary()
         ]
 
   defmodule State do
     @moduledoc false
 
-    @enforce_keys [:client, :set]
-    defstruct client: nil, poll_interval: 1_000, set: nil
+    defstruct fetch_interval: 1_000, pool: nil, set: nil
   end
 
   @doc false
@@ -37,23 +37,35 @@ defmodule Kiq.Queue.Scheduler do
 
   @impl GenServer
   def init(opts) do
-    state = struct(State, opts)
+    {conf, opts} = Keyword.pop(opts, :config)
 
-    schedule_poll(state)
+    opts =
+      opts
+      |> Keyword.put(:pool, conf.pool_name)
+      |> Keyword.put(:fetch_interval, conf.fetch_interval)
+
+    state =
+      State
+      |> struct(opts)
+      |> schedule_poll()
 
     {:ok, state}
   end
 
   @impl GenServer
-  def handle_info(:poll, %State{client: client, set: set} = state) do
-    :ok = Client.deschedule(client, set)
+  def handle_info(:poll, %State{pool: pool, set: set} = state) do
+    pool
+    |> Pool.checkout()
+    |> Queueing.deschedule(set)
 
     schedule_poll(state)
 
     {:noreply, state}
   end
 
-  defp schedule_poll(%State{poll_interval: interval}) do
+  defp schedule_poll(%State{fetch_interval: interval} = state) do
     Process.send_after(self(), :poll, random_interval(interval))
+
+    state
   end
 end
