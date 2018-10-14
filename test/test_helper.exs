@@ -60,18 +60,21 @@ defmodule Kiq.Case do
   end
 
   def with_backoff(opts \\ [], fun) do
-    with_backoff(fun, 0, Keyword.get(opts, :total, 20))
+    total = Keyword.get(opts, :total, 50)
+    sleep = Keyword.get(opts, :sleep, 20)
+
+    with_backoff(fun, 0, total, sleep)
   end
 
-  def with_backoff(fun, count, total) do
+  def with_backoff(fun, count, total, sleep) do
     try do
       fun.()
     rescue
       exception in [ExUnit.AssertionError] ->
         if count < total do
-          Process.sleep(50)
+          Process.sleep(sleep)
 
-          with_backoff(fun, count + 1, total)
+          with_backoff(fun, count + 1, total, sleep)
         else
           reraise(exception, System.stacktrace())
         end

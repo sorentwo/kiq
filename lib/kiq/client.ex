@@ -13,7 +13,7 @@ defmodule Kiq.Client do
   defmodule State do
     @moduledoc false
 
-    defstruct [:flush_interval, :pool, :table]
+    defstruct [:flush_interval, :pool, :table, :test_mode]
   end
 
   @spec start_link(opts :: options()) :: GenServer.on_start()
@@ -43,11 +43,19 @@ defmodule Kiq.Client do
   # Server
 
   @impl GenServer
-  def init(config: %Config{flush_interval: interval, pool_name: pool}) do
-    table = :ets.new(:jobs, [:duplicate_bag, :compressed])
-    state = %State{flush_interval: interval, pool: pool, table: table}
+  def init(config: config) do
+    %Config{flush_interval: interval, pool_name: pool, test_mode: test_mode} = config
 
-    schedule_flush(state)
+    opts =
+      [table: :ets.new(:jobs, [:duplicate_bag, :compressed])]
+      |> Keyword.put(:flush_interval, interval)
+      |> Keyword.put(:pool, pool)
+      |> Keyword.put(:test_mode, test_mode)
+
+    state =
+      State
+      |> struct(opts)
+      |> schedule_flush()
 
     {:ok, state}
   end
@@ -80,6 +88,11 @@ defmodule Kiq.Client do
   end
 
   def handle_call({:store, job}, {pid, _tag}, %State{table: table} = state) do
+    job =
+      job
+      |> Job.apply_unique()
+      |> Job.apply_expiry()
+
     table
     |> maybe_monitor(pid)
     |> :ets.insert({pid, job})
@@ -96,9 +109,13 @@ defmodule Kiq.Client do
 
   # Helpers
 
-  defp schedule_flush(%State{flush_interval: interval} = state) do
+  defp schedule_flush(%State{flush_interval: interval, test_mode: :disabled} = state) do
     Process.send_after(self(), :flush, interval)
 
+    state
+  end
+
+  defp schedule_flush(%State{} = state) do
     state
   end
 

@@ -29,7 +29,7 @@ defmodule Kiq.Integration.RetryingJobsTest do
       assert_receive :failed
 
       with_backoff(fn ->
-        assert [job] = Introspection.retries(conn)
+        assert [job | _] = Introspection.retries(conn)
 
         assert job.retry_count == 1
         assert job.error_class == "RuntimeError"

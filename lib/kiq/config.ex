@@ -23,7 +23,8 @@ defmodule Kiq.Config do
           reporter_name: term(),
           reporters: list(module()),
           schedulers: list(binary()),
-          server?: boolean()
+          server?: boolean(),
+          test_mode: :disabled | :sandbox
         }
 
   defstruct client_name: Client,
@@ -38,7 +39,8 @@ defmodule Kiq.Config do
             reporter_name: Reporter,
             reporters: [Logger, Retryer, Stats, Unlocker],
             schedulers: ~w(retry schedule),
-            server?: true
+            server?: true,
+            test_mode: :disabled
 
   @doc false
   @spec new(map() | Keyword.t()) :: t()

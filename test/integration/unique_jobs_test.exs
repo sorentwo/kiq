@@ -17,8 +17,10 @@ defmodule Kiq.Integration.UniqueJobsTest do
       assert job_a.unique_token == job_b.unique_token
       assert job_b.unique_token == job_c.unique_token
 
-      assert Introspection.set_size(conn, "schedule") == 1
-      assert Introspection.locked?(conn, job_c)
+      with_backoff(fn ->
+        assert Introspection.set_size(conn, "schedule") == 1
+        assert Introspection.locked?(conn, job_c)
+      end)
     end)
   end
 
@@ -31,7 +33,9 @@ defmodule Kiq.Integration.UniqueJobsTest do
       assert job.unique_token
       assert job.unlocks_at
 
-      assert Introspection.locked?(conn, job)
+      with_backoff(fn ->
+        assert Introspection.locked?(conn, job)
+      end)
 
       assert_receive {:processed, _}
 
@@ -47,7 +51,9 @@ defmodule Kiq.Integration.UniqueJobsTest do
 
       {:ok, job} = enqueue_job("FAIL", unique_until: "start", unique_for: :timer.minutes(1))
 
-      assert Introspection.locked?(conn, job)
+      with_backoff(fn ->
+        assert Introspection.locked?(conn, job)
+      end)
 
       assert_receive :failed
 

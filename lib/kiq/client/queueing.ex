@@ -14,8 +14,6 @@ defmodule Kiq.Client.Queueing do
   @spec enqueue(conn(), Job.t()) :: resp()
   def enqueue(conn, %Job{} = job) do
     job
-    |> Job.apply_unique()
-    |> Job.apply_expiry()
     |> check_unique(conn)
     |> case do
       {:ok, %Job{at: at} = job} when is_float(at) ->

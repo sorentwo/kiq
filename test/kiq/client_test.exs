@@ -1,16 +1,16 @@
 defmodule Kiq.ClientTest do
   use Kiq.Case, async: true
 
-  alias Kiq.{Client, Config}
+  alias Kiq.Client
 
   describe "using with testing in :sandbox mode" do
     setup do
-      {:ok, client} = start_supervised({Client, config: Config.new()})
+      {:ok, client} = start_supervised({Client, config: config(test_mode: :sandbox)})
 
       {:ok, client: client}
     end
 
-    test "stored jobs may be fetched for inspection", %{client: client} do
+    test "stored jobs may be fetched by the enqueueing process", %{client: client} do
       {:ok, job_a} = Client.store(client, job())
       {:ok, job_b} = Client.store(client, job())
 
