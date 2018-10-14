@@ -26,4 +26,4 @@ Logger.configure(level: :warn)
 
 {:ok, _pid} = Bench.Kiq.start_link()
 
-:ok = Bench.Kiq.clear_all()
+:ok = Bench.Kiq.clear()

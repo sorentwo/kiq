@@ -8,12 +8,18 @@ defmodule Kiq.Case do
 
   import ExUnit.CaptureLog
 
-  alias Kiq.Job
+  alias Kiq.{Config, Job}
 
   using do
     quote do
       import unquote(__MODULE__)
     end
+  end
+
+  def config(opts \\ []) do
+    opts
+    |> Keyword.put_new(:client_opts, [redis_url: redis_url()])
+    |> Config.new()
   end
 
   def job(args \\ []) do
@@ -44,7 +50,7 @@ defmodule Kiq.Case do
   def capture_integration(opts \\ [], fun) do
     start_supervised!({Kiq.Integration, opts})
 
-    :ok = Kiq.Integration.clear_all()
+    :ok = Kiq.Integration.clear()
 
     logged = capture_log([colors: [enabled: false]], fun)
 

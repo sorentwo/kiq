@@ -192,7 +192,7 @@ defmodule Kiq do
 
   All known queues are cleared, even if they aren't listed in the current configuration.
   """
-  @callback clear_all() :: :ok
+  @callback clear() :: :ok
 
   @doc """
   Enqueue a job to be processed asynchronously.
@@ -258,8 +258,8 @@ defmodule Kiq do
       end
 
       @impl Kiq
-      def clear_all do
-        Kiq.Client.clear_all(@client_name)
+      def clear do
+        Kiq.Client.clear(@client_name)
       end
 
       @impl Kiq
@@ -278,7 +278,7 @@ defmodule Kiq do
       |> to_job()
       |> with_opts(job_opts)
 
-    Client.enqueue(client, job)
+    Client.store(client, job)
   end
 
   defp to_job(%Job{} = job), do: job

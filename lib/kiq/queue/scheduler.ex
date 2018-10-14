@@ -3,7 +3,7 @@ defmodule Kiq.Queue.Scheduler do
 
   use GenServer
 
-  alias Kiq.Config
+  alias Kiq.{Config, Pool}
   alias Kiq.Client.Queueing
 
   @type options :: [

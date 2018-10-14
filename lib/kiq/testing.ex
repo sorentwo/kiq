@@ -100,11 +100,10 @@ defmodule Kiq.Testing do
   # Helpers
 
   defp jobs(client, args) do
-    queue = Map.get(args, :queue, "default")
     keys = Map.keys(args)
 
     client
-    |> Client.jobs(queue)
+    |> Client.fetch()
     |> Enum.map(&Map.take(&1, keys))
   end
 end

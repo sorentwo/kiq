@@ -20,4 +20,9 @@ defmodule Kiq.Integration.JobsTest do
     assert logged =~ ~s("status":"success")
     refute logged =~ ~s("status":"failure")
   end
+
+  # Sandbox testing
+  # 3. jobs are enqueued
+  # 4. if a process dies before flushing it is retained
+  # 5. if there is a redis error the jobs are retained until the next flush cycle
 end
