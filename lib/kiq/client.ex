@@ -1,6 +1,8 @@
 defmodule Kiq.Client do
   @moduledoc false
 
+  require Logger
+
   use GenServer
 
   alias Kiq.{Config, Pool, Job}
@@ -13,7 +15,12 @@ defmodule Kiq.Client do
   defmodule State do
     @moduledoc false
 
-    defstruct [:flush_interval, :pool, :table, :test_mode]
+    defstruct pool: nil,
+              table: nil,
+              test_mode: :disabled,
+              flush_interval: 10,
+              flush_maximum: 5_000,
+              start_interval: 10
   end
 
   @spec start_link(opts :: options()) :: GenServer.on_start()
@@ -22,8 +29,6 @@ defmodule Kiq.Client do
 
     GenServer.start_link(__MODULE__, opts, name: name)
   end
-
-  # @spec flush(client()) :: :ok
 
   @spec store(client(), Job.t()) :: {:ok, Job.t()}
   def store(client, %Job{queue: queue} = job) when is_binary(queue) do
@@ -49,6 +54,7 @@ defmodule Kiq.Client do
     opts =
       [table: :ets.new(:jobs, [:duplicate_bag, :compressed])]
       |> Keyword.put(:flush_interval, interval)
+      |> Keyword.put(:start_interval, interval)
       |> Keyword.put(:pool, pool)
       |> Keyword.put(:test_mode, test_mode)
 
@@ -61,12 +67,6 @@ defmodule Kiq.Client do
   end
 
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, %State{table: table} = state) do
-    :ets.delete(table, pid)
-
-    {:noreply, state}
-  end
-
   def handle_info(:flush, state) do
     state
     |> perform_flush()
@@ -93,9 +93,7 @@ defmodule Kiq.Client do
       |> Job.apply_unique()
       |> Job.apply_expiry()
 
-    table
-    |> maybe_monitor(pid)
-    |> :ets.insert({pid, job})
+    :ets.insert(table, {pid, job})
 
     {:reply, {:ok, job}, state}
   end
@@ -120,23 +118,42 @@ defmodule Kiq.Client do
   end
 
   defp perform_flush(%State{pool: pool, table: table} = state) do
-    conn = Pool.checkout(pool)
+    try do
+      conn = Pool.checkout(pool)
 
-    table
-    |> :ets.select([{{:_, :"$1"}, [], [:"$1"]}])
-    |> Enum.map(&Queueing.enqueue(conn, &1))
+      table
+      |> :ets.tab2list()
+      |> Enum.each(&Queueing.enqueue(conn, elem(&1, 1)))
 
-    true = :ets.delete_all_objects(table)
+      true = :ets.delete_all_objects(table)
 
+      transition_to_success(state)
+    rescue
+      error in [Redix.ConnectionError] ->
+        transition_to_failed(state, Exception.message(error))
+    catch
+      :exit, reason ->
+        transition_to_failed(state, reason)
+    end
+  end
+
+  defp transition_to_success(%State{flush_interval: interval, start_interval: interval} = state) do
     state
   end
 
-  defp maybe_monitor(table, pid, limit \\ 1) do
-    case :ets.select(table, [{{pid, :_}, [], [true]}], limit) do
-      {[true], _cont} -> true
-      _ -> Process.monitor(pid)
+  defp transition_to_success(%State{start_interval: interval} = state) do
+    Logger.info(fn -> "Enqueueing Restored" end)
+
+    %{state | flush_interval: interval}
+  end
+
+  defp transition_to_failed(state, reason) do
+    if state.flush_interval == state.start_interval do
+      Logger.warn(fn -> "Enqueueing Failed: #{reason}" end)
     end
 
-    table
+    interval = Enum.min(trunc(state.flush_interval * 1.5), state.flush_maximum)
+
+    %{state | flush_interval: interval}
   end
 end

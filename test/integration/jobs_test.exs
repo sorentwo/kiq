@@ -1,16 +1,11 @@
 defmodule Kiq.Integration.JobsTest do
   use Kiq.Case
 
-  alias Kiq.Integration
-  alias Kiq.Integration.Worker
-
   test "enqueuing and executing jobs successfully" do
     logged =
       capture_integration(fn ->
         for index <- 1..5 do
-          [Worker.pid_to_bin(), index]
-          |> Worker.new()
-          |> Integration.enqueue()
+          enqueue_job(index)
 
           assert_receive {:processed, ^index}
         end
@@ -21,8 +16,14 @@ defmodule Kiq.Integration.JobsTest do
     refute logged =~ ~s("status":"failure")
   end
 
-  # Sandbox testing
-  # 3. jobs are enqueued
-  # 4. if a process dies before flushing it is retained
-  # 5. if there is a redis error the jobs are retained until the next flush cycle
+  test "jobs are reliably enqueued desipite network failures" do
+    capture_integration([pool_size: 1], fn ->
+      {:ok, redix} = Redix.start_link(redis_url())
+      {:ok, 1} = Redix.command(redix, ["CLIENT", "KILL", "TYPE", "normal"])
+
+      enqueue_job("OK")
+
+      assert_receive {:processed, "OK"}
+    end)
+  end
 end

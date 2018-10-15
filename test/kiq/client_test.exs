@@ -24,7 +24,7 @@ defmodule Kiq.ClientTest do
       |> Task.await()
 
       assert [^job_a, ^job_b] = Client.fetch(client)
-      assert [^job_a, ^job_b] = Client.fetch(client, :shared)
+      assert [_job_a, _job_b, _job_c, _job_d] = Client.fetch(client, :shared)
 
       :ok = stop_supervised(Client)
     end
