@@ -23,7 +23,7 @@ defmodule Kiq.Integration.JobsTest do
 
       enqueue_job("OK")
 
-      assert_receive {:processed, "OK"}
+      assert_receive {:processed, "OK"}, 3_000
     end)
   end
 end

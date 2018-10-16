@@ -51,6 +51,8 @@ defmodule Kiq.Client do
   def init(config: config) do
     %Config{flush_interval: interval, pool_name: pool, test_mode: test_mode} = config
 
+    Process.flag(:trap_exit, true)
+
     opts =
       [table: :ets.new(:jobs, [:duplicate_bag, :compressed])]
       |> Keyword.put(:flush_interval, interval)
@@ -64,6 +66,19 @@ defmodule Kiq.Client do
       |> schedule_flush()
 
     {:ok, state}
+  end
+
+  @impl GenServer
+  def terminate(_reason, state) do
+    try do
+      perform_flush(state)
+    rescue
+      _error -> :ok
+    catch
+      :exit, _value -> :ok
+    end
+
+    :ok
   end
 
   @impl GenServer

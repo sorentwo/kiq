@@ -88,9 +88,6 @@ defmodule Kiq.Testing do
   Only values for the provided arguments will be checked. For example, an
   assertion made on `class: "MyWorker"` will match _any_ jobs for that class,
   regardless of the args.
-
-  If the `queue` isn't specified it falls back to `default`. This can cause
-  confusion when checking for jobs pushed into alternate queues.
   """
   @spec assert_enqueued(client :: identifier(), scoping :: atom(), args :: Enum.t()) :: any()
   def assert_enqueued(client, scoping \\ :sandbox, args) do

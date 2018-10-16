@@ -83,7 +83,7 @@ defmodule Kiq do
     If the opts contain the key `redis_url` then it will be passed to
     `Redix.start_link/1` as the lone argument.
   * `extra_reporters` — Additional reporters that your application will use to
-    report errors, track external stats, etc. See [Error Handling][] for details.
+    report errors, track external stats, etc.
   * `fetch_interval` — How frequently to poll for new jobs. Polling only
     happens when consumers aren't actively requesting new jobs.
   * `flush_interval` - How frequently locally enqueued jobs will be pushed to
@@ -104,15 +104,40 @@ defmodule Kiq do
   * `server?` — Whether to start the queue supervisors and start processing
     jobs or only start the client. This setting is useful for testing or
     deploying your application's web and workers separately.
-  * `test_mode` — Either `:disabled` or `:sandbox`. See [Testing][] for details.
+  * `test_mode` — Either `:disabled` or `:sandbox`. See
+    [Testing](#module-testing) for details.
 
   ## Testing
 
-  - how to setup testing in general
-  - how to work with sandbox testing
-    - limitations of sandbox testing (global escape hatch, no easy "shared" mode)
+  Kiq has special considerations to facilitate isolated and asynchronous testing.
+
+  For testing Kiq should be configured in `:sandbox` mode and have the server
+  disabled. This can be done specifically for the test environment by adding
+  config to `config/test.exs`:
+
+      config :my_app, :kiq, server?: false, test_mode: :sandbox
+
+  Running in `:sandbox` mode ensures that enqueued jobs stay in memory and are
+  never flushed to Redis. This allows your tests to use `Kiq.Testing` to make
+  quick assertions about which jobs have or haven't been enqueued. See the docs
+  for `Kiq.Testing` for more details and usage.
 
   ## Reliable Push
+
+  Reliable push replicates the safety aspects of Sidekiq Pro's [reliability
+  client][rely]. To guard against network errors or other Redis issues the
+  client buffers all jobs locally. At a frequent interval the jobs are flushed
+  to Redis. If there are any errors while flushing the jobs will remain in
+  memory until flushing can be retried later.
+
+  ### Caveats
+
+  * The local job buffer is stored in memory, if the server is restarted any
+    jobs may be lost.
+  * There isn't any limit on the number of jobs that can be buffered. However,
+    to conserve space jobs are stored compressed.
+
+  [rely]: https://github.com/mperham/sidekiq/wiki/Pro-Reliability-Client
 
   ## Unique Jobs
 
