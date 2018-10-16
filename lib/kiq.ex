@@ -86,6 +86,9 @@ defmodule Kiq do
     report errors, track external stats, etc. See [Error Handling][] for details.
   * `fetch_interval` — How frequently to poll for new jobs. Polling only
     happens when consumers aren't actively requesting new jobs.
+  * `flush_interval` - How frequently locally enqueued jobs will be pushed to
+    Redis. This defaults to `10ms`, though it will back-off by a factor of `1.5`
+    if there are any connection errors.
   * `pool_size` — Controls the number of Redis connections available to Kiq,
     defaults to 5.
   * `queues` — A keyword list of queues where each entry is the name of the
@@ -101,6 +104,15 @@ defmodule Kiq do
   * `server?` — Whether to start the queue supervisors and start processing
     jobs or only start the client. This setting is useful for testing or
     deploying your application's web and workers separately.
+  * `test_mode` — Either `:disabled` or `:sandbox`. See [Testing][] for details.
+
+  ## Testing
+
+  - how to setup testing in general
+  - how to work with sandbox testing
+    - limitations of sandbox testing (global escape hatch, no easy "shared" mode)
+
+  ## Reliable Push
 
   ## Unique Jobs
 

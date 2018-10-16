@@ -18,7 +18,7 @@ defmodule Kiq.Case do
 
   def config(opts \\ []) do
     opts
-    |> Keyword.put_new(:client_opts, [redis_url: redis_url()])
+    |> Keyword.put_new(:client_opts, redis_url: redis_url())
     |> Config.new()
   end
 
