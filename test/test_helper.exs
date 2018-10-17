@@ -1,5 +1,4 @@
-Logger.configure(level: :info)
-Logger.configure_backend(:console, format: "$message\n")
+Logger.remove_backend(:console)
 
 ExUnit.start(assert_receive_timeout: 1500, refute_receive_timeout: 1500)
 
@@ -52,9 +51,14 @@ defmodule Kiq.Case do
 
     :ok = Kiq.Integration.clear()
 
-    logged = capture_log([colors: [enabled: false]], fun)
+    logged =
+      capture_log([colors: [enabled: false]], fn ->
+        fun.()
 
-    :ok = stop_supervised(Kiq.Integration)
+        :ok = stop_supervised(Kiq.Integration)
+
+        Logger.flush()
+      end)
 
     logged
   end
