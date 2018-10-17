@@ -1,11 +1,9 @@
-Logger.remove_backend(:console)
+# Logger.remove_backend(:console)
 
 ExUnit.start(assert_receive_timeout: 1500, refute_receive_timeout: 1500)
 
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
-
-  import ExUnit.CaptureLog
 
   alias Kiq.{Config, Job}
 
@@ -44,23 +42,6 @@ defmodule Kiq.Case do
 
   def redis_url do
     System.get_env("REDIS_URL") || "redis://localhost:6379/3"
-  end
-
-  def capture_integration(opts \\ [], fun) do
-    start_supervised!({Kiq.Integration, opts})
-
-    :ok = Kiq.Integration.clear()
-
-    logged =
-      capture_log([colors: [enabled: false]], fn ->
-        fun.()
-
-        :ok = stop_supervised(Kiq.Integration)
-
-        Logger.flush()
-      end)
-
-    logged
   end
 
   def with_backoff(opts \\ [], fun) do
