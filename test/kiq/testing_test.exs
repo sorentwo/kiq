@@ -6,7 +6,7 @@ defmodule Kiq.TestingTest do
   alias Kiq.Client
 
   setup do
-    config = config(flush_interval: 1_000)
+    config = config(test_mode: :sandbox)
 
     {:ok, client} = start_supervised({Client, config: config, name: TestClient})
 

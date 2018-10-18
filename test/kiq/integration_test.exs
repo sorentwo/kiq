@@ -18,7 +18,7 @@ defmodule Kiq.IntegrationTest do
   end
 
   def capture_log(opts \\ [], fun) do
-    {sleep, opts} = Keyword.pop(opts, :sleep, 100)
+    {sleep, opts} = Keyword.pop(opts, :sleep, 50)
 
     ExUnit.CaptureLog.capture_log(opts, fn ->
       fun.()

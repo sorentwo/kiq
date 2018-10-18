@@ -1,4 +1,4 @@
-# Logger.remove_backend(:console)
+Logger.configure_backend(:console, level: :warn)
 
 ExUnit.start(assert_receive_timeout: 1500, refute_receive_timeout: 1500)
 
@@ -16,6 +16,7 @@ defmodule Kiq.Case do
   def config(opts \\ []) do
     opts
     |> Keyword.put_new(:client_opts, redis_url: redis_url())
+    |> Keyword.put_new(:test_mode, :sandbox)
     |> Config.new()
   end
 

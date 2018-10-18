@@ -122,7 +122,7 @@ defmodule Kiq.Client do
 
   # Helpers
 
-  defp schedule_flush(%State{flush_interval: interval, test_mode: :disabled} = state) do
+  defp schedule_flush(%State{flush_interval: interval} = state) do
     Process.send_after(self(), :flush, interval)
 
     state
@@ -132,7 +132,7 @@ defmodule Kiq.Client do
     state
   end
 
-  defp perform_flush(%State{pool: pool, table: table} = state) do
+  defp perform_flush(%State{pool: pool, table: table, test_mode: :disabled} = state) do
     try do
       conn = Pool.checkout(pool)
 
@@ -152,6 +152,10 @@ defmodule Kiq.Client do
     end
   end
 
+  defp perform_flush(state) do
+    state
+  end
+
   defp transition_to_success(%State{flush_interval: interval, start_interval: interval} = state) do
     state
   end
@@ -167,7 +171,7 @@ defmodule Kiq.Client do
       Logger.warn(fn -> "Enqueueing Failed: #{inspect(reason)}" end)
     end
 
-    interval = Enum.min(trunc(state.flush_interval * 1.5), state.flush_maximum)
+    interval = Enum.min([trunc(state.flush_interval * 1.5), state.flush_maximum])
 
     %{state | flush_interval: interval}
   end
