@@ -43,13 +43,13 @@ level marquee features that Kiq aims to support:
 * [x] Custom reporters for custom logging, stats, error reporting, etc.
 * [x] Reliable job fetching to prevent ever losing jobs before they are
   processed
-* [ ] Reliable job pushing in the event of network disconnection
+* [x] Reliable job pushing in the event of network disconnection
 * [x] Unique job support, prevent enqueuing duplicate jobs within a period of time
 * [ ] Batch job support, monitor a collection of jobs as a group and execute
   callbacks when all jobs are complete
 * [ ] Periodic job support, schedule jobs to be enqueued automatically on a
   recurring basis
-* [ ] Expiring job support, prevent running jobs that have exceeded an
+* [x] Expiring job support, prevent running jobs that have exceeded an
   expiration period
 
 Not all of Sidekiq's features are supported. If a feature isn't supported or
@@ -80,7 +80,7 @@ Add `kiq` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:kiq, "~> 0.1.0"}
+    {:kiq, "~> 0.2"}
   ]
 end
 ```

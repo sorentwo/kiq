@@ -15,6 +15,7 @@ defmodule Kiq.Config do
           client_opts: Keyword.t(),
           extra_reporters: list(module()),
           fetch_interval: non_neg_integer(),
+          flush_interval: non_neg_integer(),
           identity: binary(),
           pool_name: term(),
           pool_size: pos_integer(),
@@ -22,13 +23,15 @@ defmodule Kiq.Config do
           reporter_name: term(),
           reporters: list(module()),
           schedulers: list(binary()),
-          server?: boolean()
+          server?: boolean(),
+          test_mode: :disabled | :sandbox
         }
 
   defstruct client_name: Client,
             client_opts: [],
             extra_reporters: [],
-            fetch_interval: 1_000,
+            fetch_interval: 500,
+            flush_interval: 10,
             queues: [default: 25],
             identity: nil,
             pool_name: Pool,
@@ -36,7 +39,8 @@ defmodule Kiq.Config do
             reporter_name: Reporter,
             reporters: [Logger, Retryer, Stats, Unlocker],
             schedulers: ~w(retry schedule),
-            server?: true
+            server?: true,
+            test_mode: :disabled
 
   @doc false
   @spec new(map() | Keyword.t()) :: t()

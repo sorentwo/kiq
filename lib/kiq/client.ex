@@ -1,21 +1,26 @@
 defmodule Kiq.Client do
   @moduledoc false
 
+  require Logger
+
   use GenServer
 
   alias Kiq.{Config, Pool, Job}
-  alias Kiq.Client.{Cleanup, Introspection, Queueing}
+  alias Kiq.Client.{Cleanup, Queueing}
 
   @type client :: GenServer.server()
-  @type queue :: binary()
   @type options :: [config: Config.t(), name: GenServer.name()]
-  @type set :: binary()
-  @type stat_report :: [success: integer(), failure: integer()]
+  @type scoping :: :sandbox | :shared
 
   defmodule State do
     @moduledoc false
 
-    defstruct pool: nil
+    defstruct pool: nil,
+              table: nil,
+              test_mode: :disabled,
+              flush_interval: 10,
+              flush_maximum: 5_000,
+              start_interval: 10
   end
 
   @spec start_link(opts :: options()) :: GenServer.on_start()
@@ -25,97 +30,149 @@ defmodule Kiq.Client do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @spec enqueue(client(), Job.t()) :: {:ok, Job.t()}
-  def enqueue(client, %Job{queue: queue} = job) when is_binary(queue) do
-    GenServer.call(client, {:enqueue, job})
+  @spec store(client(), Job.t()) :: {:ok, Job.t()}
+  def store(client, %Job{queue: queue} = job) when is_binary(queue) do
+    GenServer.call(client, {:store, job})
   end
 
-  @spec dequeue(client(), queue(), pos_integer()) :: list(iodata())
-  def dequeue(_client, _queue, 0), do: []
-
-  def dequeue(client, queue, count) when is_binary(queue) and is_integer(count) do
-    GenServer.call(client, {:dequeue, queue, count})
+  @spec fetch(client(), scoping()) :: list(Job.t())
+  def fetch(client, scoping \\ :sandbox) when scoping in [:sandbox, :shared] do
+    GenServer.call(client, {:fetch, scoping})
   end
 
-  @spec deschedule(client(), set()) :: :ok
-  def deschedule(client, set) when is_binary(set) do
-    GenServer.call(client, {:deschedule, set})
-  end
-
-  @spec resurrect(client(), queue()) :: :ok
-  def resurrect(client, queue) when is_binary(queue) do
-    GenServer.call(client, {:resurrect, queue})
-  end
-
-  ## Introspection
-
-  @spec jobs(client(), queue()) :: list(Job.t())
-  def jobs(client, queue) when is_binary(queue) do
-    GenServer.call(client, {:jobs, queue})
-  end
-
-  @spec queue_size(client(), queue()) :: pos_integer()
-  def queue_size(client, queue) when is_binary(queue) do
-    GenServer.call(client, {:queue_size, queue})
-  end
-
-  @spec set_size(client(), set()) :: pos_integer()
-  def set_size(client, set) when is_binary(set) do
-    GenServer.call(client, {:set_size, set})
-  end
-
-  ## Clearing & Removal
-
-  @spec clear_all(client()) :: :ok
-  def clear_all(client) do
-    GenServer.call(client, :clear_all)
+  @spec clear(client()) :: :ok
+  def clear(client) do
+    GenServer.call(client, :clear)
   end
 
   # Server
 
   @impl GenServer
-  def init(config: %Config{pool_name: pool_name}) do
-    {:ok, %State{pool: pool_name}}
-  end
+  def init(config: config) do
+    %Config{flush_interval: interval, pool_name: pool, test_mode: test_mode} = config
 
-  ## Enqueuing | Dequeuing
+    Process.flag(:trap_exit, true)
+
+    opts =
+      [table: :ets.new(:jobs, [:duplicate_bag, :compressed])]
+      |> Keyword.put(:flush_interval, interval)
+      |> Keyword.put(:start_interval, interval)
+      |> Keyword.put(:pool, pool)
+      |> Keyword.put(:test_mode, test_mode)
+
+    state =
+      State
+      |> struct(opts)
+      |> schedule_flush()
+
+    {:ok, state}
+  end
 
   @impl GenServer
-  def handle_call({:enqueue, job}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.enqueue(conn(pool), job), state}
+  def terminate(_reason, state) do
+    try do
+      perform_flush(state)
+    rescue
+      _error -> :ok
+    catch
+      :exit, _value -> :ok
+    end
+
+    :ok
   end
 
-  def handle_call({:dequeue, queue, count}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.dequeue(conn(pool), queue, count), state}
+  @impl GenServer
+  def handle_info(:flush, state) do
+    state
+    |> perform_flush()
+    |> schedule_flush()
+
+    {:noreply, state}
   end
 
-  def handle_call({:deschedule, set}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.deschedule(conn(pool), set), state}
+  @impl GenServer
+  def handle_call(:clear, _from, %State{pool: pool, table: table} = state) do
+    true = :ets.delete_all_objects(table)
+
+    :ok =
+      pool
+      |> Pool.checkout()
+      |> Cleanup.clear()
+
+    {:reply, :ok, state}
   end
 
-  def handle_call({:resurrect, queue}, _from, %State{pool: pool} = state) do
-    {:reply, Queueing.resurrect(conn(pool), queue), state}
+  def handle_call({:store, job}, {pid, _tag}, %State{table: table} = state) do
+    job =
+      job
+      |> Job.apply_unique()
+      |> Job.apply_expiry()
+
+    :ets.insert(table, {pid, job})
+
+    {:reply, {:ok, job}, state}
   end
 
-  ## Introspection
+  def handle_call({:fetch, scoping}, {pid, _tag}, %State{table: table} = state) do
+    pid_match = if scoping == :sandbox, do: pid, else: :_
+    jobs = :ets.select(table, [{{pid_match, :"$1"}, [], [:"$1"]}])
 
-  def handle_call({:jobs, queue}, _from, %State{pool: pool} = state) do
-    {:reply, Introspection.jobs(conn(pool), queue), state}
+    {:reply, jobs, state}
   end
 
-  def handle_call({:queue_size, queue}, _from, %State{pool: pool} = state) do
-    {:reply, Introspection.queue_size(conn(pool), queue), state}
+  # Helpers
+
+  defp schedule_flush(%State{flush_interval: interval} = state) do
+    Process.send_after(self(), :flush, interval)
+
+    state
   end
 
-  def handle_call({:set_size, set}, _from, %State{pool: pool} = state) do
-    {:reply, Introspection.set_size(conn(pool), set), state}
+  defp schedule_flush(%State{} = state) do
+    state
   end
 
-  ## Clearing & Removal
+  defp perform_flush(%State{pool: pool, table: table, test_mode: :disabled} = state) do
+    try do
+      conn = Pool.checkout(pool)
 
-  def handle_call(:clear_all, _from, %State{pool: pool} = state) do
-    {:reply, Cleanup.clear_all(conn(pool)), state}
+      table
+      |> :ets.tab2list()
+      |> Enum.each(&Queueing.enqueue(conn, elem(&1, 1)))
+
+      true = :ets.delete_all_objects(table)
+
+      transition_to_success(state)
+    rescue
+      error in [Redix.ConnectionError] ->
+        transition_to_failed(state, Exception.message(error))
+    catch
+      :exit, reason ->
+        transition_to_failed(state, reason)
+    end
   end
 
-  defp conn(pool), do: Pool.checkout(pool)
+  defp perform_flush(state) do
+    state
+  end
+
+  defp transition_to_success(%State{flush_interval: interval, start_interval: interval} = state) do
+    state
+  end
+
+  defp transition_to_success(%State{start_interval: interval} = state) do
+    Logger.info(fn -> "Enqueueing Restored" end)
+
+    %{state | flush_interval: interval}
+  end
+
+  defp transition_to_failed(state, reason) do
+    if state.flush_interval == state.start_interval do
+      Logger.warn(fn -> "Enqueueing Failed: #{inspect(reason)}" end)
+    end
+
+    interval = Enum.min([trunc(state.flush_interval * 1.5), state.flush_maximum])
+
+    %{state | flush_interval: interval}
+  end
 end

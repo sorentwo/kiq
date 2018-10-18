@@ -1,30 +1,21 @@
 defmodule Kiq.TestingTest do
   use Kiq.Case, async: true
-  use Kiq.Testing, client: Kiq.TestingTest.FakeClient
 
-  defmodule FakeClient do
-    use GenServer
+  use Kiq.Testing, client: TestClient
 
-    def start_link(queues: queues) do
-      GenServer.start_link(__MODULE__, queues, name: __MODULE__)
-    end
+  alias Kiq.Client
 
-    def init(queues) do
-      {:ok, queues}
-    end
+  setup do
+    config = config(test_mode: :sandbox)
 
-    def handle_call({:jobs, queue}, _from, queues) do
-      jobs = Map.get(queues, queue, [])
+    {:ok, client} = start_supervised({Client, config: config, name: TestClient})
 
-      {:reply, jobs, queues}
-    end
+    {:ok, client: client}
   end
 
-  test "job presence is checked by queue and arguments" do
-    jobs_a = [job(class: "MyWorker", args: [1, 2], queue: "a")]
-    jobs_b = [job(class: "MyWorker", args: [4, 5], queue: "b")]
-
-    {:ok, _pid} = start_supervised({FakeClient, queues: %{"a" => jobs_a, "b" => jobs_b}})
+  test "job presence is scoped by asserted properties", %{client: client} do
+    {:ok, _} = Client.store(client, job(class: "MyWorker", args: [1, 2], queue: "a"))
+    {:ok, _} = Client.store(client, job(class: "MyWorker", args: [4, 5], queue: "b"))
 
     assert_enqueued(queue: "a", class: "MyWorker")
     assert_enqueued(queue: "b", class: "MyWorker", args: [4, 5])
@@ -32,5 +23,24 @@ defmodule Kiq.TestingTest do
     refute_enqueued(queue: "c", class: "MyWorker", args: [4, 5])
     refute_enqueued(queue: "a", class: "MyWorker", args: [4, 5])
     refute_enqueued(queue: "b", class: "MyWorker", args: [1, 2])
+
+    :ok = stop_supervised(Client)
+  end
+
+  test "assertions can be made with :global scoping", %{client: client} do
+    fn ->
+      {:ok, _} = Client.store(client, job(queue: "a"))
+      {:ok, _} = Client.store(client, job(queue: "b"))
+    end
+    |> Task.async()
+    |> Task.await()
+
+    refute_enqueued(queue: "a")
+    refute_enqueued(queue: "b")
+
+    assert_enqueued(:shared, queue: "a")
+    assert_enqueued(:shared, queue: "b")
+
+    :ok = stop_supervised(Client)
   end
 end

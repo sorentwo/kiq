@@ -1,18 +1,7 @@
 defmodule Kiq.Queue.SchedulerTest do
   use Kiq.Case, async: true
 
-  alias Kiq.EchoClient
   alias Kiq.Queue.Scheduler
-
-  test "polling triggers descheduling of the set" do
-    {:ok, cli} = start_supervised({EchoClient, test_pid: self()})
-    {:ok, _} = start_supervised({Scheduler, client: cli, poll_interval: 1, set: "schedule"})
-
-    assert_receive {:deschedule, "schedule"}
-
-    :ok = stop_supervised(Scheduler)
-    :ok = stop_supervised(EchoClient)
-  end
 
   describe "random_interval/1" do
     test "generating random intervals that target an average" do

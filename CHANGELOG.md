@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Expiring Job support. Expiring jobs won't be ran after a configurable amount
   of time. The expiration period is set with the `expires_in` option, which
   accepts millisecond values identically to the `unique_for` option.
+- Connection pooling. Recently added benchmarks quickly identified a bottleneck
+  in the single Client/Redis connection. A simple random-order pool was
+  introduced that allowed the client, queues and reporters to rotate through a
+  set of connections. This change alone doubled the enqueue/dequeue throughput.
+- Reliable push support. Enqueued jobs are now buffered in memory and
+  periodically flushed to Redis. If there are any connection errors or Redis is
+  down the jobs are retained and flushing is retried with backoff.
+- Sandbox test mode. When `test_mode` is set to `:sandbox` jobs will never be
+  flushed to Redis. Each locally buffered job is associated with the process
+  that enqueued it, enabling concurrent testing with isolation between test
+  runs.
+
+### Changed
+
+- Upgrade from Redix 0.7.X to 0.8.X, which introduced the `noreply_` variant of
+  commands.
+- Renamed `poll_interval` option to `flush_interval`, and the default changed
+  from `1000` to `500`.
 
 ### Fixed
 

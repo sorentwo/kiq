@@ -1,19 +1,23 @@
-Logger.configure(level: :info)
-Logger.configure_backend(:console, format: "$message\n")
+Logger.configure_backend(:console, level: :warn)
 
 ExUnit.start(assert_receive_timeout: 1500, refute_receive_timeout: 1500)
 
 defmodule Kiq.Case do
   use ExUnit.CaseTemplate
 
-  import ExUnit.CaptureLog
-
-  alias Kiq.Job
+  alias Kiq.{Config, Job}
 
   using do
     quote do
       import unquote(__MODULE__)
     end
+  end
+
+  def config(opts \\ []) do
+    opts
+    |> Keyword.put_new(:client_opts, redis_url: redis_url())
+    |> Keyword.put_new(:test_mode, :sandbox)
+    |> Config.new()
   end
 
   def job(args \\ []) do
@@ -41,31 +45,22 @@ defmodule Kiq.Case do
     System.get_env("REDIS_URL") || "redis://localhost:6379/3"
   end
 
-  def capture_integration(opts \\ [], fun) do
-    start_supervised!({Kiq.Integration, opts})
-
-    :ok = Kiq.Integration.clear_all()
-
-    logged = capture_log([colors: [enabled: false]], fun)
-
-    :ok = stop_supervised(Kiq.Integration)
-
-    logged
-  end
-
   def with_backoff(opts \\ [], fun) do
-    with_backoff(fun, 0, Keyword.get(opts, :total, 20))
+    total = Keyword.get(opts, :total, 50)
+    sleep = Keyword.get(opts, :sleep, 20)
+
+    with_backoff(fun, 0, total, sleep)
   end
 
-  def with_backoff(fun, count, total) do
+  def with_backoff(fun, count, total, sleep) do
     try do
       fun.()
     rescue
       exception in [ExUnit.AssertionError] ->
         if count < total do
-          Process.sleep(50)
+          Process.sleep(sleep)
 
-          with_backoff(fun, count + 1, total)
+          with_backoff(fun, count + 1, total, sleep)
         else
           reraise(exception, System.stacktrace())
         end

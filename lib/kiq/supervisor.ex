@@ -23,7 +23,7 @@ defmodule Kiq.Supervisor do
       config = Config.new(opts)
       children = client_children(config) ++ server_children(config)
 
-      Supervisor.init(children, strategy: :rest_for_one)
+      Supervisor.init(children, strategy: :one_for_one)
     end
   end
 
@@ -65,7 +65,7 @@ defmodule Kiq.Supervisor do
 
   defp scheduler_spec(set, config) do
     name = Module.concat(["Kiq", "Scheduler", String.capitalize(set)])
-    opts = [client: config.client_name, set: set, name: name]
+    opts = [config: config, set: set, name: name]
 
     Supervisor.child_spec({Scheduler, opts}, id: name)
   end

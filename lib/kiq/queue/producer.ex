@@ -9,7 +9,7 @@ defmodule Kiq.Queue.Producer do
   @type options :: [
           config: Config.t(),
           demand: non_neg_integer(),
-          fetch_interval: non_neg_integer(),
+          fetch_interval: pos_integer(),
           queue: binary()
         ]
 

@@ -8,7 +8,8 @@ defmodule Kiq.SupervisorTest do
       opts = [
         client_opts: [redis_url: redis_url()],
         schedulers: ["retry"],
-        queues: [default: 2, priority: 2]
+        queues: [default: 2, priority: 2],
+        test_mode: :sandbox
       ]
 
       {:ok, sup} = start_supervised({KiqSup, opts})
@@ -27,7 +28,7 @@ defmodule Kiq.SupervisorTest do
     end
 
     test "only the client is started when :server? is false" do
-      opts = [client_opts: [redis_url: redis_url()], server?: false]
+      opts = [client_opts: [redis_url: redis_url()], server?: false, test_mode: :sandbox]
 
       {:ok, sup} = start_supervised({KiqSup, opts})
 

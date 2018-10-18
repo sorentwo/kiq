@@ -10,8 +10,8 @@ defmodule Kiq.Client.Cleanup do
 
   @static_keys ["retry", "schedule", "processes"]
 
-  @spec clear_all(conn()) :: resp()
-  def clear_all(conn) do
+  @spec clear(conn()) :: resp()
+  def clear(conn) do
     {:ok, queues} = command(conn, ["KEYS", "queue*"])
     {:ok, unique} = command(conn, ["KEYS", "unique:*"])
     {:ok, stats} = command(conn, ["KEYS", "stat:*"])
