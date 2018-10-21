@@ -35,8 +35,7 @@ Kiq's feature set includes many marquee offerings from Sidekiq, Sidekiq Pro and
 Sidekiq Enterprise—plus some additional niceties made possible by running on the
 BEAM.
 
-These are the high
-level marquee features that Kiq aims to support:
+These are the high level marquee features that Kiq aims to support:
 
 * [x] Integration with Sidekiq's Web UI and support for metrics, processes and
   in-progress jobs
@@ -45,6 +44,7 @@ level marquee features that Kiq aims to support:
   processed
 * [x] Reliable job pushing in the event of network disconnection
 * [x] Unique job support, prevent enqueuing duplicate jobs within a period of time
+* [x] Leadership election, a foundation for queue resurrection and periodic jobs
 * [ ] Batch job support, monitor a collection of jobs as a group and execute
   callbacks when all jobs are complete
 * [ ] Periodic job support, schedule jobs to be enqueued automatically on a
@@ -65,8 +65,7 @@ planned it is _probably_ for one of these reasons:
 
 * Avoid global and compile time configuration. All configuration can be defined
   programatically, eliminating the need for hacks like `{:system, "REDIS_URL"}`.
-* Not an application, it is included in your application's supervision
-  tree
+* Not an application, it is included in your application's supervision tree
 * Testing focused, provide helpers and modes to aid testing
 * Extensible job handling via GenStage consumers
 * Simplified worker definitions to ease job definition and pipelining

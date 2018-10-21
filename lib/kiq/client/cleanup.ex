@@ -8,7 +8,7 @@ defmodule Kiq.Client.Cleanup do
   @typep conn :: GenServer.server()
   @typep resp :: :ok | {:error, atom() | Redix.Error.t()}
 
-  @static_keys ["retry", "schedule", "processes"]
+  @static_keys ["leadership", "processes", "retry", "schedule"]
 
   @spec clear(conn()) :: resp()
   def clear(conn) do

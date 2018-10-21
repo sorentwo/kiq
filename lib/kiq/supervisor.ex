@@ -3,7 +3,7 @@ defmodule Kiq.Supervisor do
 
   use Supervisor
 
-  alias Kiq.{Client, Config, Pool}
+  alias Kiq.{Client, Config, Pool, Senator}
   alias Kiq.Pool.Supervisor, as: PoolSupervisor
   alias Kiq.Queue.Scheduler
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
@@ -56,11 +56,12 @@ defmodule Kiq.Supervisor do
   end
 
   defp server_children(config) do
+    senators = [{Senator, config: config, name: config.senator_name}]
     reporters = [{ReporterSupervisor, config: config}]
     schedulers = Enum.map(config.schedulers, &scheduler_spec(&1, config))
     queues = Enum.map(config.queues, &queue_spec(&1, config))
 
-    reporters ++ schedulers ++ queues
+    senators ++ reporters ++ schedulers ++ queues
   end
 
   defp scheduler_spec(set, config) do

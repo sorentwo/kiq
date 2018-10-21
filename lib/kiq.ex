@@ -266,6 +266,7 @@ defmodule Kiq do
       @client_name Module.concat(__MODULE__, "Client")
       @pool_name Module.concat(__MODULE__, "Pool")
       @reporter_name Module.concat(__MODULE__, "Reporter")
+      @senator_name Module.concat(__MODULE__, "Senator")
       @supervisor_name Module.concat(__MODULE__, "Supervisor")
 
       @opts unquote(opts)
@@ -274,6 +275,7 @@ defmodule Kiq do
             |> Keyword.put(:client_name, @client_name)
             |> Keyword.put(:pool_name, @pool_name)
             |> Keyword.put(:reporter_name, @reporter_name)
+            |> Keyword.put(:senator_name, @senator_name)
 
       @doc false
       def child_spec(opts) do
