@@ -2,6 +2,7 @@ defmodule Kiq.Client.Queueing do
   @moduledoc false
 
   import Redix, only: [command!: 2, noreply_command!: 2, noreply_pipeline!: 2, pipeline!: 2]
+  import Kiq.Naming, only: [queue_name: 1, backup_name: 2, unlock_name: 1]
 
   alias Kiq.{Job, Timestamp}
 
@@ -33,9 +34,11 @@ defmodule Kiq.Client.Queueing do
     schedule_job(job, @retry_set, conn)
   end
 
-  @spec dequeue(conn(), binary(), pos_integer()) :: list(iodata())
-  def dequeue(conn, queue, count) when is_binary(queue) and is_integer(count) do
-    commands = List.duplicate(["RPOPLPUSH", queue_name(queue), backup_name(queue)], count)
+  @spec dequeue(conn(), binary(), binary(), pos_integer()) :: list(iodata())
+  def dequeue(conn, queue, identity, count)
+      when is_binary(queue) and is_binary(identity) and is_integer(count) do
+    commands =
+      List.duplicate(["RPOPLPUSH", queue_name(queue), backup_name(identity, queue)], count)
 
     results = pipeline!(conn, commands)
 
@@ -60,24 +63,7 @@ defmodule Kiq.Client.Queueing do
     :ok
   end
 
-  @spec resurrect(conn(), binary()) :: :ok
-  def resurrect(conn, queue) when is_binary(queue) do
-    with count when count > 0 <- command!(conn, ["LLEN", backup_name(queue)]) do
-      commands = List.duplicate(["RPOPLPUSH", backup_name(queue), queue_name(queue)], count)
-
-      :ok = noreply_pipeline!(conn, commands)
-    end
-
-    :ok
-  end
-
   # Helpers
-
-  defp queue_name(queue), do: "queue:#{queue}"
-
-  defp backup_name(queue), do: "queue:#{queue}:backup"
-
-  defp unlock_name(token), do: "unique:#{token}"
 
   defp check_unique(%{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
     unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)

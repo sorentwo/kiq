@@ -2,6 +2,7 @@ defmodule Kiq.Client.Introspection do
   @moduledoc false
 
   import Redix, only: [command: 2, pipeline: 2]
+  import Kiq.Naming, only: [queue_name: 1, backup_name: 2, unlock_name: 1]
 
   alias Kiq.Job
 
@@ -11,7 +12,7 @@ defmodule Kiq.Client.Introspection do
 
   @spec jobs(conn(), queue()) :: list(Job.t())
   def jobs(conn, queue) when is_binary(queue) do
-    {:ok, results} = command(conn, ["LRANGE", "queue:#{queue}", "0", "-1"])
+    {:ok, results} = command(conn, ["LRANGE", queue_name(queue), "0", "-1"])
 
     Enum.map(results, &Job.decode/1)
   end
@@ -25,14 +26,14 @@ defmodule Kiq.Client.Introspection do
 
   @spec queue_size(conn(), queue()) :: non_neg_integer()
   def queue_size(conn, queue) when is_binary(queue) do
-    {:ok, count} = command(conn, ["LLEN", "queue:#{queue}"])
+    {:ok, count} = command(conn, ["LLEN", queue_name(queue)])
 
     count
   end
 
-  @spec backup_size(conn(), queue()) :: non_neg_integer()
-  def backup_size(conn, queue) when is_binary(queue) do
-    {:ok, count} = command(conn, ["LLEN", "queue:#{queue}:backup"])
+  @spec backup_size(conn(), identity(), queue()) :: non_neg_integer()
+  def backup_size(conn, identity, queue) when is_binary(queue) do
+    {:ok, count} = command(conn, ["LLEN", backup_name(identity, queue)])
 
     count
   end
@@ -46,7 +47,7 @@ defmodule Kiq.Client.Introspection do
 
   @spec locked?(conn(), Job.t()) :: boolean()
   def locked?(conn, %Job{} = job) do
-    {:ok, 1} == command(conn, ["EXISTS", "unique:#{job.unique_token}"])
+    {:ok, 1} == command(conn, ["EXISTS", unlock_name(job.unique_token)])
   end
 
   @spec alive?(conn(), identity()) :: boolean()

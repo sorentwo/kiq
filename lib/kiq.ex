@@ -132,12 +132,26 @@ defmodule Kiq do
 
   ### Caveats
 
-  * The local job buffer is stored in memory, if the server is restarted any
-    jobs may be lost.
+  * The local job buffer is stored in memory, if the server is restarted
+    suddently some jobs may be lost.
   * There isn't any limit on the number of jobs that can be buffered. However,
     to conserve space jobs are stored compressed.
 
   [rely]: https://github.com/mperham/sidekiq/wiki/Pro-Reliability-Client
+
+  ## Private Queues
+
+  Kiq tries to prevent all job loss through private queues, a variant of the
+  [Super Fetch][super] mechanism available in Sidekiq Pro. When jobs are
+  executed they are backed up to a private queue specific to the server
+  processing the job. If the processor crashes or the application is terminated
+  before the job is finished the jobs remain backed up. On startup, and
+  periodically afterward, jobs in any dead private queues are pushed back to
+  the public queue for re-execution.
+
+  This solution is well suited to containerized environments and autoscaling.
+
+  [super]: https://github.com/mperham/sidekiq/wiki/Pro-Reliability-Server#super_fetch
 
   ## Unique Jobs
 

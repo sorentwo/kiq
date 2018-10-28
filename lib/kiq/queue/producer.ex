@@ -16,7 +16,7 @@ defmodule Kiq.Queue.Producer do
   defmodule State do
     @moduledoc false
 
-    defstruct pool: nil, demand: 0, fetch_interval: 500, queue: nil
+    defstruct [:identity, :pool, :queue, demand: 0, fetch_interval: 500]
   end
 
   @doc false
@@ -35,14 +35,14 @@ defmodule Kiq.Queue.Producer do
 
     opts =
       opts
-      |> Keyword.put(:pool, conf.pool_name)
       |> Keyword.put(:fetch_interval, conf.fetch_interval)
+      |> Keyword.put(:identity, conf.identity)
+      |> Keyword.put(:pool, conf.pool_name)
 
     state =
       State
       |> struct(opts)
       |> schedule_fetch()
-      |> schedule_resurrect()
 
     {:producer, state}
   end
@@ -58,14 +58,6 @@ defmodule Kiq.Queue.Producer do
     |> dispatch()
   end
 
-  def handle_info(:resurrect, %State{pool: pool, queue: queue} = state) do
-    pool
-    |> Pool.checkout()
-    |> Queueing.resurrect(queue)
-
-    {:noreply, [], state}
-  end
-
   @impl GenStage
   def handle_demand(demand, %State{demand: buffered_demand} = state) do
     schedule_fetch(state)
@@ -75,11 +67,11 @@ defmodule Kiq.Queue.Producer do
 
   # Helpers
 
-  defp dispatch(%State{pool: pool, demand: demand, queue: queue} = state) do
+  defp dispatch(%State{demand: demand} = state) do
     jobs =
-      pool
+      state.pool
       |> Pool.checkout()
-      |> Queueing.dequeue(queue, demand)
+      |> Queueing.dequeue(state.queue, state.identity, demand)
 
     {:noreply, jobs, %{state | demand: demand - length(jobs)}}
   end
@@ -90,12 +82,6 @@ defmodule Kiq.Queue.Producer do
 
   defp schedule_fetch(%State{fetch_interval: interval} = state) do
     Process.send_after(self(), :fetch, jitter(interval))
-
-    state
-  end
-
-  defp schedule_resurrect(%State{fetch_interval: interval} = state) do
-    Process.send_after(self(), :resurrect, jitter(interval))
 
     state
   end

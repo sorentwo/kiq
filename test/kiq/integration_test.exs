@@ -7,13 +7,9 @@ defmodule Kiq.IntegrationTest do
 
   @identity "ident:1234"
 
-  setup_all do
-    {:ok, _pid} = Integration.start_link(identity: @identity, pool_size: 1)
-
-    :ok
-  end
-
   setup do
+    {:ok, _pid} = start_supervised({Integration, identity: @identity, pool_size: 1})
+
     :ok = Integration.clear()
   end
 
@@ -51,6 +47,26 @@ defmodule Kiq.IntegrationTest do
     assert_receive {:processed, "OK"}, 3_000
   end
 
+  # Resurrection
+
+  test "orphaned jobs in backup queues are resurrected" do
+    enqueue_job("SLOW")
+
+    assert_receive :started
+
+    :ok = stop_supervised(Integration)
+    {:ok, _pid} = start_supervised({Integration, identity: "ident:4321", pool_size: 1})
+
+    assert_receive :started
+
+    conn = Pool.checkout(Integration.Pool)
+
+    with_backoff(fn ->
+      assert Introspection.backup_size(conn, "ident:1234", "integration") == 0
+      assert Introspection.backup_size(conn, "ident:4321", "integration") == 0
+    end)
+  end
+
   # Retry
 
   test "jobs are pruned from the backup queue after running" do
@@ -63,7 +79,7 @@ defmodule Kiq.IntegrationTest do
     assert Introspection.queue_size(conn, "integration") == 0
 
     with_backoff(fn ->
-      assert Introspection.backup_size(conn, "integration") == 0
+      assert Introspection.backup_size(conn, @identity, "integration") == 0
     end)
   end
 
@@ -174,7 +190,7 @@ defmodule Kiq.IntegrationTest do
 
     heartbeat = Introspection.heartbeat(conn, @identity)
 
-    assert %{beat: _beat, busy: 1, quiet: false} = heartbeat
+    assert %{beat: _beat, busy: _busy, quiet: false} = heartbeat
     assert %{info: %{identity: @identity, queues: ["integration"]}} = heartbeat
 
     [details] =

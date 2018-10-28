@@ -37,6 +37,6 @@ defmodule Kiq.Client.Leadership do
 
   @spec resign(conn(), identity()) :: boolean()
   def resign(conn, identity) when is_binary(identity) do
-    command!(conn, ["EVAL", @resign_script, "1", @key, identity])
+    command!(conn, ["EVAL", @resign_script, "1", @key, identity]) > 0
   end
 end

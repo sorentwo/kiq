@@ -11,7 +11,7 @@ defmodule Kiq.Reporter.Retryer do
   defmodule State do
     @moduledoc false
 
-    defstruct pool: nil
+    defstruct [:identity, :pool]
   end
 
   # Callbacks
@@ -20,7 +20,7 @@ defmodule Kiq.Reporter.Retryer do
   def init(opts) do
     {conf, opts} = Keyword.pop(opts, :config)
 
-    {:consumer, %State{pool: conf.pool_name}, opts}
+    {:consumer, %State{identity: conf.identity, pool: conf.pool_name}, opts}
   end
 
   @impl Reporter
@@ -47,7 +47,7 @@ defmodule Kiq.Reporter.Retryer do
   def handle_stopped(%Job{} = job, state) do
     state.pool
     |> Pool.checkout()
-    |> Cleanup.remove_backup(job)
+    |> Cleanup.remove_backup(state.identity, job)
 
     state
   end
