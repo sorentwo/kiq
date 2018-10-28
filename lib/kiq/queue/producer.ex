@@ -39,10 +39,9 @@ defmodule Kiq.Queue.Producer do
       |> Keyword.put(:identity, conf.identity)
       |> Keyword.put(:pool, conf.pool_name)
 
-    state =
-      State
-      |> struct(opts)
-      |> schedule_fetch()
+    state = struct(State, opts)
+
+    send(self(), :fetch)
 
     {:producer, state}
   end
@@ -76,8 +75,11 @@ defmodule Kiq.Queue.Producer do
     {:noreply, jobs, %{state | demand: demand - length(jobs)}}
   end
 
+  # Jitter the interval by a fixed percentage to ensure that it is always lower
+  # than the maximum interval, but has some variance. The variance prevents all
+  # of the queues from checking Redis at once and slamming it.
   defp jitter(interval) do
-    trunc(interval / 2 + interval * :rand.uniform())
+    trunc(interval * 0.8 + interval * 0.2 * :rand.uniform())
   end
 
   defp schedule_fetch(%State{fetch_interval: interval} = state) do
