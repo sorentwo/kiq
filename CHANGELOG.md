@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   flushed to Redis. Each locally buffered job is associated with the process
   that enqueued it, enabling concurrent testing with isolation between test
   runs.
+- Leadership election. Useful when coordinating work that should only happen on
+  a single node. Internally used to prevent duplicate job resurrection, and in
+  the future will be used for periodic jobs.
+- Private queues. Ensure terminated jobs are resurrected when the application
+  starts up. Unlike the previous job backup mechanism this guarantees that only
+  jobs from dead processors are resurrected; in-process jobs will never be
+  duplicated.
 
 ### Changed
 

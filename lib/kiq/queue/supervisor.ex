@@ -10,7 +10,7 @@ defmodule Kiq.Queue.Supervisor do
           config: Config.t(),
           queue: binary(),
           limit: pos_integer(),
-          name: GenServer.name()
+          name: Config.name()
         ]
 
   @spec start_link(opts :: options()) :: Supervisor.on_start()

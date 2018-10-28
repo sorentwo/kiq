@@ -16,7 +16,7 @@ defmodule Kiq.Queue.Producer do
   defmodule State do
     @moduledoc false
 
-    defstruct pool: nil, demand: 0, fetch_interval: 500, queue: nil
+    defstruct [:identity, :pool, :queue, demand: 0, fetch_interval: 500]
   end
 
   @doc false
@@ -35,14 +35,13 @@ defmodule Kiq.Queue.Producer do
 
     opts =
       opts
-      |> Keyword.put(:pool, conf.pool_name)
       |> Keyword.put(:fetch_interval, conf.fetch_interval)
+      |> Keyword.put(:identity, conf.identity)
+      |> Keyword.put(:pool, conf.pool_name)
 
-    state =
-      State
-      |> struct(opts)
-      |> schedule_fetch()
-      |> schedule_resurrect()
+    state = struct(State, opts)
+
+    send(self(), :fetch)
 
     {:producer, state}
   end
@@ -58,14 +57,6 @@ defmodule Kiq.Queue.Producer do
     |> dispatch()
   end
 
-  def handle_info(:resurrect, %State{pool: pool, queue: queue} = state) do
-    pool
-    |> Pool.checkout()
-    |> Queueing.resurrect(queue)
-
-    {:noreply, [], state}
-  end
-
   @impl GenStage
   def handle_demand(demand, %State{demand: buffered_demand} = state) do
     schedule_fetch(state)
@@ -75,27 +66,24 @@ defmodule Kiq.Queue.Producer do
 
   # Helpers
 
-  defp dispatch(%State{pool: pool, demand: demand, queue: queue} = state) do
+  defp dispatch(%State{demand: demand} = state) do
     jobs =
-      pool
+      state.pool
       |> Pool.checkout()
-      |> Queueing.dequeue(queue, demand)
+      |> Queueing.dequeue(state.queue, state.identity, demand)
 
     {:noreply, jobs, %{state | demand: demand - length(jobs)}}
   end
 
+  # Jitter the interval by a fixed percentage to ensure that it is always lower
+  # than the maximum interval, but has some variance. The variance prevents all
+  # of the queues from checking Redis at once and slamming it.
   defp jitter(interval) do
-    trunc(interval / 2 + interval * :rand.uniform())
+    trunc(interval * 0.8 + interval * 0.2 * :rand.uniform())
   end
 
   defp schedule_fetch(%State{fetch_interval: interval} = state) do
     Process.send_after(self(), :fetch, jitter(interval))
-
-    state
-  end
-
-  defp schedule_resurrect(%State{fetch_interval: interval} = state) do
-    Process.send_after(self(), :resurrect, jitter(interval))
 
     state
   end
