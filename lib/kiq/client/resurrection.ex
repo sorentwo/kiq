@@ -7,17 +7,16 @@ defmodule Kiq.Client.Resurrection do
   @typep conn :: GenServer.server()
 
   @resurrect_script """
-    local count = 0
+    local jids = redis.call("hkeys", KEYS[1])
 
-    while true do
-      if redis.call("rpoplpush", KEYS[1], KEYS[2]) then
-        count = count + 1
-      else
-        break
-      end
+    for _idx, jid in ipairs(jids) do
+      local job = redis.call("hget", KEYS[1], jid)
+
+      redis.call("lpush", KEYS[2], job)
+      redis.call("hdel", KEYS[1], jid)
     end
 
-    return count
+    return #jids
   """
 
   @spec resurrect(conn()) :: list(any())

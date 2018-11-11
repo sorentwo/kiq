@@ -23,8 +23,8 @@ defmodule Kiq.Client.Cleanup do
   end
 
   @spec remove_backup(conn(), binary(), Job.t()) :: resp()
-  def remove_backup(conn, identity, %Job{queue: queue} = job) do
-    noreply_command(conn, ["LREM", backup_name(identity, queue), "0", Job.encode(job)])
+  def remove_backup(conn, identity, %Job{jid: jid, queue: queue}) do
+    noreply_command(conn, ["HDEL", backup_name(identity, queue), jid])
   end
 
   @spec unlock_job(conn(), Job.t()) :: resp()

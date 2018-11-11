@@ -12,6 +12,28 @@ defmodule Kiq.Client.Queueing do
   @retry_set "retry"
   @schedule_set "schedule"
 
+  @dequeue_script """
+    local index = tonumber(ARGV[1])
+    local jobs = {}
+
+    while (index > 0) do
+      local job = redis.call("rpop", KEYS[1])
+
+      if job then
+        local jid = string.match(job, '"jid":"(%w+)"')
+
+        redis.call("hset", KEYS[2], jid, job)
+        table.insert(jobs, job)
+
+        index = index - 1
+      else
+        break
+      end
+    end
+
+    return jobs
+  """
+
   @spec enqueue(conn(), Job.t()) :: resp()
   def enqueue(conn, %Job{} = job) do
     job
@@ -35,14 +57,11 @@ defmodule Kiq.Client.Queueing do
   end
 
   @spec dequeue(conn(), binary(), binary(), pos_integer()) :: list(iodata())
-  def dequeue(conn, queue, identity, count)
-      when is_binary(queue) and is_binary(identity) and is_integer(count) do
-    commands =
-      List.duplicate(["RPOPLPUSH", queue_name(queue), backup_name(identity, queue)], count)
+  def dequeue(conn, queue, identity, count) when is_binary(queue) and is_integer(count) do
+    queue_name = queue_name(queue)
+    backup_name = backup_name(identity, queue)
 
-    results = pipeline!(conn, commands)
-
-    Enum.filter(results, & &1)
+    command!(conn, ["EVAL", @dequeue_script, "2", queue_name, backup_name, count])
   end
 
   @spec deschedule(conn(), binary()) :: :ok

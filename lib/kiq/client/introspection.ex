@@ -33,7 +33,7 @@ defmodule Kiq.Client.Introspection do
 
   @spec backup_size(conn(), identity(), queue()) :: non_neg_integer()
   def backup_size(conn, identity, queue) when is_binary(queue) do
-    {:ok, count} = command(conn, ["LLEN", backup_name(identity, queue)])
+    {:ok, count} = command(conn, ["HLEN", backup_name(identity, queue)])
 
     count
   end
