@@ -18,7 +18,7 @@ defmodule Kiq.IdentityTest do
 
   describe "nonce/1" do
     test "a fixed length random string of ascii characters is returned" do
-      assert Identity.nonce(8) =~ ~r/^[A-Z0-9]{8}$/
+      assert Identity.nonce(8) =~ ~r/^[a-z0-9]{8}$/
     end
   end
 
@@ -27,7 +27,7 @@ defmodule Kiq.IdentityTest do
       hostname = "worker.1"
       identity = Identity.identity(%{"DYNO" => hostname})
 
-      assert identity =~ ~r/^#{hostname}:<0\.\d+\.0>:[A-Z0-9]+$/
+      assert identity =~ ~r/^#{hostname}:<0\.\d+\.0>:[a-z0-9]+$/
     end
   end
 end

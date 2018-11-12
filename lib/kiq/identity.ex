@@ -26,7 +26,7 @@ defmodule Kiq.Identity do
   def nonce(size \\ 8) when size > 0 do
     size
     |> :crypto.strong_rand_bytes()
-    |> Base.hex_encode32()
+    |> Base.hex_encode32(case: :lower)
     |> String.slice(0..(size - 1))
   end
 end
