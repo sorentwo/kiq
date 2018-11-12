@@ -13,7 +13,7 @@ defmodule Kiq.Script do
       Task.start_link(__MODULE__, :run, [config])
     end
 
-    @spec start_link(struct()) :: :ok
+    @spec start_link(struct()) :: {:ok, pid()}
     def run(%_{pool_name: pool}) do
       pool
       |> Pool.checkout()

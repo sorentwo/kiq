@@ -1,7 +1,7 @@
 defmodule Kiq.Client.Queueing do
   @moduledoc false
 
-  import Redix, only: [command!: 2, noreply_command!: 2, noreply_pipeline!: 2, pipeline!: 2]
+  import Redix, only: [command!: 2, noreply_command!: 2, noreply_pipeline!: 2]
   import Kiq.Naming, only: [queue_name: 1, backup_name: 2, unlock_name: 1]
 
   alias Kiq.{Job, Script, Timestamp}
@@ -13,7 +13,9 @@ defmodule Kiq.Client.Queueing do
   @schedule_set "schedule"
 
   @external_resource Script.path("dequeue")
+  @external_resource Script.path("deschedule")
   @dequeue_sha Script.hash("dequeue")
+  @deschedule_sha Script.hash("deschedule")
 
   @spec enqueue(conn(), Job.t()) :: resp()
   def enqueue(conn, %Job{} = job) do
@@ -42,23 +44,15 @@ defmodule Kiq.Client.Queueing do
     queue_name = queue_name(queue)
     backup_name = backup_name(identity, queue)
 
-    command!(conn, ["EVALSHA", @dequeue_sha, "2", queue_name, backup_name, count])
+    command!(conn, ["EVALSHA", @dequeue_sha, "2", queue_name, backup_name, to_string(count)])
   end
 
   @spec deschedule(conn(), binary()) :: :ok
   def deschedule(conn, set) when is_binary(set) do
-    max_score = Timestamp.to_score()
-
-    with [_ | _] = jobs <- command!(conn, ["ZRANGEBYSCORE", set, "0", max_score]) do
-      rem_commands = Enum.map(jobs, &["ZREM", set, &1])
-      rem_counts = pipeline!(conn, rem_commands)
-
-      jobs
-      |> Enum.zip(rem_counts)
-      |> Enum.filter(fn {_job, count} -> count > 0 end)
-      |> Enum.map(fn {job, _count} -> Job.decode(job) end)
-      |> Enum.each(&push_job(&1, conn))
-    end
+    conn
+    |> command!(["EVALSHA", @deschedule_sha, "1", set, Timestamp.to_score()])
+    |> Enum.map(&Job.decode/1)
+    |> Enum.each(&push_job(&1, conn))
 
     :ok
   end
@@ -67,15 +61,9 @@ defmodule Kiq.Client.Queueing do
 
   defp check_unique(%{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
     unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)
+    unlock_name = unlock_name(job.unique_token)
 
-    command = [
-      "SET",
-      unlock_name(job.unique_token),
-      to_string(unlocks_at),
-      "PX",
-      to_string(unlocks_in),
-      "NX"
-    ]
+    command = ["SET", unlock_name, to_string(unlocks_at), "PX", to_string(unlocks_in), "NX"]
 
     case command!(conn, command) do
       "OK" -> {:ok, job}
