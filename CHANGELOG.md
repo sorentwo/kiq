@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Enhancements
+
+- [Script] More functionality, including dequeueing and descheduling, has been
+  moved into Lua scripts. To reduce bandwidth and io overhead all `EVAL` usage
+  has been replaced with `EVALSHA`.
+- [Identity] For purely aesthetic reasons the nonce value is now lower case.
+
+### Bug Fixes
+
+- [Kiq] In progress backup queues, AKA "Private Queues", are now implemented
+  with a hash rather than a list. This ensures that a job can _always_ be
+  removed from the backup, regardless of how it is encoded. Previously, when a
+  job was enqueued by Sidekiq the serialized version wouldn't match the
+  version serialized by Kiq. The `LREM` command requires an exact binary match
+  or list elements won't be removed, which caused jobs to linger in the backup
+  queue.
+
 ## [0.3.0] — 2018-10-28
 
-### Added
+### Enhancements
 
 - Expiring Job support. Expiring jobs won't be ran after a configurable amount
   of time. The expiration period is set with the `expires_in` option, which
@@ -46,7 +63,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.2.0] — 2018-09-17
 
-### Added
+### Enhancements
 
 - Unique Job support. Workers, and their corresponding jobs, can now be made
   unique within for a period of time. Until the initial job has succeeded it is
@@ -74,7 +91,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.1.0] - 2018-07-31
 
-### Added
+### Enhancements
 
 Initial release, everything was added!
 
