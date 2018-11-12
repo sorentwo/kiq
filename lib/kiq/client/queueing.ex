@@ -4,7 +4,7 @@ defmodule Kiq.Client.Queueing do
   import Redix, only: [command!: 2, noreply_command!: 2, noreply_pipeline!: 2, pipeline!: 2]
   import Kiq.Naming, only: [queue_name: 1, backup_name: 2, unlock_name: 1]
 
-  alias Kiq.{Job, Timestamp}
+  alias Kiq.{Job, Script, Timestamp}
 
   @typep conn :: GenServer.server()
   @typep resp :: {:ok, Job.t()}
@@ -12,27 +12,8 @@ defmodule Kiq.Client.Queueing do
   @retry_set "retry"
   @schedule_set "schedule"
 
-  @dequeue_script """
-    local index = tonumber(ARGV[1])
-    local jobs = {}
-
-    while (index > 0) do
-      local job = redis.call("rpop", KEYS[1])
-
-      if job then
-        local jid = string.match(job, '"jid":"(%w+)"')
-
-        redis.call("hset", KEYS[2], jid, job)
-        table.insert(jobs, job)
-
-        index = index - 1
-      else
-        break
-      end
-    end
-
-    return jobs
-  """
+  @external_resource Script.path("dequeue")
+  @dequeue_sha Script.hash("dequeue")
 
   @spec enqueue(conn(), Job.t()) :: resp()
   def enqueue(conn, %Job{} = job) do
@@ -61,7 +42,7 @@ defmodule Kiq.Client.Queueing do
     queue_name = queue_name(queue)
     backup_name = backup_name(identity, queue)
 
-    command!(conn, ["EVAL", @dequeue_script, "2", queue_name, backup_name, count])
+    command!(conn, ["EVALSHA", @dequeue_sha, "2", queue_name, backup_name, count])
   end
 
   @spec deschedule(conn(), binary()) :: :ok

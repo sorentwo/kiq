@@ -3,27 +3,18 @@ defmodule Kiq.Client.Leadership do
 
   import Redix, only: [command!: 2]
 
+  alias Kiq.Script
+
   @typep conn :: GenServer.server()
   @typep identity :: binary()
   @typep ttl :: pos_integer()
 
   @key "leadership"
 
-  @resign_script """
-    if redis.call("get", KEYS[1]) == ARGV[1] then
-      return redis.call("del", KEYS[1])
-    else
-      return 0
-    end
-  """
-
-  @reelect_script """
-    if redis.call("get", KEYS[1]) == ARGV[1] then
-      return redis.call("pexpire", KEYS[1], ARGV[2])
-    else
-      return 0
-    end
-  """
+  @external_resource Script.path("resign")
+  @external_resource Script.path("reelect")
+  @resign_sha Script.hash("resign")
+  @reelect_sha Script.hash("reelect")
 
   @spec inaugurate(conn(), identity(), ttl()) :: boolean()
   def inaugurate(conn, identity, ttl) when is_binary(identity) and ttl > 0 do
@@ -32,11 +23,11 @@ defmodule Kiq.Client.Leadership do
 
   @spec reelect(conn(), identity(), ttl()) :: boolean()
   def reelect(conn, identity, ttl) when is_binary(identity) and ttl > 0 do
-    command!(conn, ["EVAL", @reelect_script, "1", @key, identity, to_string(ttl)]) > 0
+    command!(conn, ["EVALSHA", @reelect_sha, "1", @key, identity, to_string(ttl)]) > 0
   end
 
   @spec resign(conn(), identity()) :: boolean()
   def resign(conn, identity) when is_binary(identity) do
-    command!(conn, ["EVAL", @resign_script, "1", @key, identity]) > 0
+    command!(conn, ["EVALSHA", @resign_sha, "1", @key, identity]) > 0
   end
 end

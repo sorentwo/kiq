@@ -4,20 +4,12 @@ defmodule Kiq.Client.Resurrection do
   import Redix, only: [command!: 2]
   import Kiq.Naming, only: [queue_name: 1]
 
+  alias Kiq.Script
+
   @typep conn :: GenServer.server()
 
-  @resurrect_script """
-    local jids = redis.call("hkeys", KEYS[1])
-
-    for _idx, jid in ipairs(jids) do
-      local job = redis.call("hget", KEYS[1], jid)
-
-      redis.call("lpush", KEYS[2], job)
-      redis.call("hdel", KEYS[1], jid)
-    end
-
-    return #jids
-  """
+  @external_resource Script.path("resurrect")
+  @resurrect_sha Script.hash("resurrect")
 
   @spec resurrect(conn()) :: list(any())
   def resurrect(conn) do
@@ -71,7 +63,7 @@ defmodule Kiq.Client.Resurrection do
   # race conditions.
   defp restore_backups(backups, conn) do
     for {backup, _identity, queue} <- backups do
-      command!(conn, ["EVAL", @resurrect_script, "2", backup, queue_name(queue)])
+      command!(conn, ["EVALSHA", @resurrect_sha, "2", backup, queue_name(queue)])
     end
   end
 end

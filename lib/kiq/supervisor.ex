@@ -8,6 +8,7 @@ defmodule Kiq.Supervisor do
   alias Kiq.Queue.Scheduler
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
   alias Kiq.Reporter.Supervisor, as: ReporterSupervisor
+  alias Kiq.Script.BootTask
 
   @doc false
   @spec start_link(opts :: Keyword.t()) :: Supervisor.on_start()
@@ -47,7 +48,8 @@ defmodule Kiq.Supervisor do
     [
       {PoolSupervisor, config: config, name: supervisor_name},
       {Pool, config: config, name: config.pool_name},
-      {Client, config: config, name: config.client_name}
+      {Client, config: config, name: config.client_name},
+      {BootTask, config: config}
     ]
   end
 
