@@ -3,7 +3,6 @@ defmodule Kiq.Reporter.LoggerTest do
 
   import ExUnit.CaptureLog
 
-  alias Kiq.FakeProducer
   alias Kiq.Reporter.Logger, as: Reporter
 
   setup do
@@ -12,22 +11,8 @@ defmodule Kiq.Reporter.LoggerTest do
     {:ok, job: job()}
   end
 
-  defp log_event(event) do
-    capture_log([colors: [enabled: false]], fn ->
-      {:ok, pro} = start_supervised({FakeProducer, events: [event]})
-      {:ok, con} = start_supervised({Reporter, []})
-
-      GenStage.sync_subscribe(con, to: pro)
-
-      Process.sleep(10)
-
-      :ok = stop_supervised(Reporter)
-      :ok = stop_supervised(FakeProducer)
-    end)
-  end
-
   test "job start is logged", %{job: job} do
-    message = log_event({:started, job})
+    message = capture_log(fn -> Reporter.handle_started(job, nil) end)
 
     assert message =~ "Worker"
     assert message =~ "testing"
@@ -36,7 +21,7 @@ defmodule Kiq.Reporter.LoggerTest do
   end
 
   test "job success is logged with timing information", %{job: job} do
-    message = log_event({:success, job, [timing: 103]})
+    message = capture_log(fn -> Reporter.handle_success(job, [timing: 103], nil) end)
 
     assert message =~ "Worker"
     assert message =~ "testing"
@@ -46,7 +31,7 @@ defmodule Kiq.Reporter.LoggerTest do
   end
 
   test "job abort is logged with the reason", %{job: job} do
-    message = log_event({:aborted, job, [reason: :expired]})
+    message = capture_log(fn -> Reporter.handle_aborted(job, [reason: :expired], nil) end)
 
     assert message =~ "Worker"
     assert message =~ "expired"
@@ -54,7 +39,7 @@ defmodule Kiq.Reporter.LoggerTest do
   end
 
   test "job failure is logged with exception information", %{job: job} do
-    message = log_event({:failure, job, %RuntimeError{}, []})
+    message = capture_log(fn -> Reporter.handle_failure(job, %RuntimeError{}, [], nil) end)
 
     assert message =~ "Worker"
     assert message =~ "testing"

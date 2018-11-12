@@ -1,7 +1,7 @@
 defmodule Kiq.Reporter.InstrumenterTest do
   use Kiq.Case, async: true
 
-  alias Kiq.Reporter.Instrumenter
+  alias Kiq.Reporter.Instrumenter, as: Reporter
 
   def attach(type) do
     Telemetry.attach("test-#{type}", [:kiq, :job, type], __MODULE__, :handle_event, nil)
@@ -11,51 +11,51 @@ defmodule Kiq.Reporter.InstrumenterTest do
     send(self(), {type, value, metadata})
   end
 
-  describe "handle_started/2" do
-    test "job started metrics are reported" do
-      attach(:started)
+  test "job started metrics are reported" do
+    attach(:started)
 
-      job = job(class: "Worker", queue: "events")
+    job = job(class: "Worker", queue: "events")
 
-      Instrumenter.handle_started(job, nil)
+    Reporter.handle_started(job, nil)
 
-      assert_received {:started, 1, %{class: "Worker", queue: "events"}}
-    end
+    assert_received {:started, 1, %{class: "Worker", queue: "events"}}
+  after
+    Telemetry.detach("test-started")
   end
 
-  describe "handle_success/3" do
-    test "job success metrics are reported" do
-      attach(:success)
+  test "job success metrics are reported" do
+    attach(:success)
 
-      job = job(class: "Worker", queue: "events")
+    job = job(class: "Worker", queue: "events")
 
-      Instrumenter.handle_success(job, [timing: 123], nil)
+    Reporter.handle_success(job, [timing: 123], nil)
 
-      assert_received {:success, 123, %{class: "Worker", queue: "events"}}
-    end
+    assert_received {:success, 123, %{class: "Worker", queue: "events"}}
+  after
+    Telemetry.detach("test-success")
   end
 
-  describe "handle_aborted/2" do
-    test "job aborted metrics are reported" do
-      attach(:aborted)
+  test "job aborted metrics are reported" do
+    attach(:aborted)
 
-      job = job(class: "Worker", queue: "events")
+    job = job(class: "Worker", queue: "events")
 
-      Instrumenter.handle_aborted(job, [reason: :expired], nil)
+    Reporter.handle_aborted(job, [reason: :expired], nil)
 
-      assert_received {:aborted, 1, %{class: "Worker", queue: "events", reason: :expired}}
-    end
+    assert_received {:aborted, 1, %{class: "Worker", queue: "events", reason: :expired}}
+  after
+    Telemetry.detach("test-aborted")
   end
 
-  describe "handle_failure/4" do
-    test "job failure metrics are reported" do
-      attach(:failure)
+  test "job failure metrics are reported" do
+    attach(:failure)
 
-      job = job(class: "Worker", queue: "events")
+    job = job(class: "Worker", queue: "events")
 
-      Instrumenter.handle_failure(job, %RuntimeError{}, [], nil)
+    Reporter.handle_failure(job, %RuntimeError{}, [], nil)
 
-      assert_received {:failure, 1, %{class: "Worker", queue: "events", error: "RuntimeError"}}
-    end
+    assert_received {:failure, 1, %{class: "Worker", queue: "events", error: "RuntimeError"}}
+  after
+    Telemetry.detach("test-failure")
   end
 end
