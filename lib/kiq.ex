@@ -1,5 +1,5 @@
 defmodule Kiq do
-  @moduledoc """
+  @moduledoc ~S"""
   Kiq is a robust and extensible job processing queue that aims for
   compatibility with Sidekiq Enterprise.
 
@@ -205,6 +205,35 @@ defmodule Kiq do
   and 30 minutes.
 
   [expi]: https://github.com/mperham/sidekiq/wiki/Pro-Expiring-Jobs
+
+  ## Instrumentation & Metrics
+
+  The instrumentation reporter provides integration with [Telemetry][tele], a
+  dispatching library for metrics. It is easy to report Kiq metrics to any
+  backend by attaching to `:kiq` events.
+
+  For exmaple, to log out the timing for all successful jobs:
+
+      defmodule KiqJobLogger do
+        require Logger
+
+        def handle_event([:kiq, :job, :success], timing, metadata, _config) do
+          Logger.info("[#{metadata.queue}] #{metadata.class} finished in #{timing}")
+        end
+      end
+
+      Telemetry.attach([:kiq, :job, :success], KiqJobLogger, :handle_event, nil)
+
+  Here is a reference for the available metrics:
+
+  | event     | name                     | value  | metadata                  |
+  | --------- | ------------------------ | ------ | ------------------------- |
+  | `started` | `[:kiq, :job, :started]` | 1      | `:class, :queue`          |
+  | `success` | `[:kiq, :job, :success]` | timing | `:class, :queue`          |
+  | `aborted` | `[:kiq, :job, :aborted]` | 1      | `:class, :queue, :reason` |
+  | `failure` | `[:kiq, :job, :failure]` | 1      | `:class, :queue, :error`  |
+
+  [tele]: https://hexdocs.pm/telemetry
   """
 
   alias Kiq.{Client, Job, Timestamp}

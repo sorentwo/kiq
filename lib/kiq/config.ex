@@ -4,7 +4,7 @@ defmodule Kiq.Config do
   import Kiq.Identity, only: [identity: 0]
 
   alias Kiq.{Client, Pool, Reporter, Senator}
-  alias Kiq.Reporter.{Logger, Retryer, Stats, Unlocker}
+  alias Kiq.Reporter.{Instrumenter, Logger, Retryer, Stats, Unlocker}
 
   @type name :: GenServer.server()
   @type queue_name :: atom() | binary()
@@ -41,7 +41,7 @@ defmodule Kiq.Config do
             pool_name: Pool,
             pool_size: 5,
             reporter_name: Reporter,
-            reporters: [Logger, Retryer, Stats, Unlocker],
+            reporters: [Instrumenter, Logger, Retryer, Stats, Unlocker],
             schedulers: ~w(retry schedule),
             senator_name: Senator,
             server?: true,

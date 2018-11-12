@@ -36,7 +36,7 @@ defmodule Kiq.Reporter.Logger do
     state
   end
 
-  @impl Kiq.Reporter
+  @impl Reporter
   def handle_aborted(%Job{class: class, jid: jid, queue: queue}, meta, state) do
     reason = Keyword.get(meta, :reason, :unknown)
 
@@ -51,7 +51,7 @@ defmodule Kiq.Reporter.Logger do
     state
   end
 
-  @impl Kiq.Reporter
+  @impl Reporter
   def handle_failure(%Job{class: class, jid: jid, queue: queue}, error, _stack, state) do
     log_formatted(%{
       worker: class,

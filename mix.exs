@@ -1,9 +1,7 @@
 defmodule Kiq.MixProject do
   use Mix.Project
 
-  @version "0.3.0"
-
-  @repo_url "https://github.com/sorentwo/kiq"
+  @version "0.4.0"
 
   def project do
     [
@@ -50,7 +48,7 @@ defmodule Kiq.MixProject do
     [
       maintainers: ["Parker Selbert"],
       licenses: ["MIT"],
-      links: %{"GitHub" => @repo_url}
+      links: %{github: "https://github.com/sorentwo/kiq"}
     ]
   end
 
@@ -59,6 +57,7 @@ defmodule Kiq.MixProject do
       {:jason, "~> 1.1"},
       {:gen_stage, "~> 0.14"},
       {:redix, "~> 0.8"},
+      {:telemetry, "~> 0.2"},
       {:benchee, "~> 0.13", only: [:dev], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false},

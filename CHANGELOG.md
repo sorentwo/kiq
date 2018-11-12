@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   moved into Lua scripts. To reduce bandwidth and io overhead all `EVAL` usage
   has been replaced with `EVALSHA`.
 - [Identity] For purely aesthetic reasons the nonce value is now lower case.
+- [Reporter.Instrumenter] A new reporter that provides instrumentation data
+  through [Telemetry](https://hexdocs.pm/telemetry). Reporting job execution
+  metrics only requires attaching to `[:kiq, :job, event]` events.
 
 ### Bug Fixes
 
