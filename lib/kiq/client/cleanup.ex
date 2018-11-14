@@ -10,7 +10,7 @@ defmodule Kiq.Client.Cleanup do
   @typep resp :: :ok | {:error, atom() | Redix.Error.t()}
 
   @dead_set "dead"
-  @static_keys ["leadership", "processes", "dead", "retry", "schedule"]
+  @static_keys ~w(leadership periodic processes dead retry schedule)
 
   @spec clear(conn()) :: resp()
   def clear(conn) do

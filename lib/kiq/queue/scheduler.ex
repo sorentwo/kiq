@@ -6,12 +6,12 @@ defmodule Kiq.Queue.Scheduler do
   alias Kiq.{Config, Pool}
   alias Kiq.Client.Queueing
 
-  @type options :: [
-          config: Config.t(),
-          name: any(),
-          fetch_interval: pos_integer(),
-          set: binary()
-        ]
+  @typep options :: [
+           config: Config.t(),
+           name: identifier(),
+           fetch_interval: pos_integer(),
+           set: binary()
+         ]
 
   defmodule State do
     @moduledoc false
@@ -19,7 +19,6 @@ defmodule Kiq.Queue.Scheduler do
     defstruct fetch_interval: 1_000, pool: nil, set: nil
   end
 
-  @doc false
   @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
@@ -27,7 +26,6 @@ defmodule Kiq.Queue.Scheduler do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @doc false
   @spec random_interval(average :: pos_integer()) :: pos_integer()
   def random_interval(average) do
     trunc(average * :rand.uniform() + average / 2)

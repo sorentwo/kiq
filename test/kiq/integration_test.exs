@@ -8,17 +8,14 @@ defmodule Kiq.IntegrationTest do
   @identity "ident:1234"
 
   setup do
-    {:ok, _pid} = start_supervised({Integration, identity: @identity, pool_size: 1})
+    {:ok, _pid} = start_supervised({Integration, identity: @identity})
 
     :ok = Integration.clear()
   end
 
   def capture_log(opts \\ [], fun) do
-    {sleep, opts} = Keyword.pop(opts, :sleep, 50)
-
     ExUnit.CaptureLog.capture_log(opts, fn ->
       fun.()
-      Process.sleep(sleep)
       Logger.flush()
     end)
   end
