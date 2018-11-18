@@ -8,7 +8,7 @@ defmodule Kiq.WorkerTest do
   end
 
   defmodule CustomWorker do
-    use Worker, queue: "special", retry: 5
+    use Worker, queue: "special", retry: 5, dead: false
 
     @impl Worker
     def perform([a, b]) do
@@ -28,6 +28,7 @@ defmodule Kiq.WorkerTest do
       assert job.class == "Elixir.Kiq.WorkerTest.CustomWorker"
       assert job.queue == "special"
       assert job.retry == 5
+      refute job.dead
     end
   end
 

@@ -82,6 +82,11 @@ defmodule Kiq do
   * `client_opts` — A keyword list of options passed to each Redix connection.
     If the opts contain the key `redis_url` then it will be passed to
     `Redix.start_link/1` as the lone argument.
+  * `dead_limit` — The maximum number of jobs that will be retained in the dead
+    set. Jobs beyond the limit are pruned any time a new job is moved to the dead
+    set. The default is `10_000`.
+  * `dead_timeout` — The maximum amount of time that a job will remain in the
+    dead set before being purged, specified in seconds. The default is 6 months.
   * `extra_reporters` — Additional reporters that your application will use to
     report errors, track external stats, etc.
   * `fetch_interval` — How frequently to poll for new jobs. Polling only

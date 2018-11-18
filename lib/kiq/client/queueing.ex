@@ -33,12 +33,6 @@ defmodule Kiq.Client.Queueing do
     end
   end
 
-  @spec retry(conn(), Job.t()) :: resp()
-  def retry(conn, %Job{retry: retry, retry_count: count} = job)
-      when is_integer(retry) or (retry == true and count > 0) do
-    schedule_job(job, @retry_set, conn)
-  end
-
   @spec dequeue(conn(), binary(), binary(), pos_integer()) :: list(iodata())
   def dequeue(conn, queue, identity, count) when is_binary(queue) and is_integer(count) do
     queue_name = queue_name(queue)
@@ -55,6 +49,12 @@ defmodule Kiq.Client.Queueing do
     |> Enum.each(&push_job(&1, conn))
 
     :ok
+  end
+
+  @spec retry(conn(), Job.t()) :: resp()
+  def retry(conn, %Job{retry: retry, retry_count: count} = job)
+      when is_integer(retry) or (retry == true and count > 0) do
+    schedule_job(job, @retry_set, conn)
   end
 
   # Helpers

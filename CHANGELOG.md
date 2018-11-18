@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [Reporter.Instrumenter] A new reporter that provides instrumentation data
   through [Telemetry](https://hexdocs.pm/telemetry). Reporting job execution
   metrics only requires attaching to `[:kiq, :job, event]` events.
+- [Reporter.Retryer] Dead jobs support! Jobs with exhausted retries are moved
+  into the `dead` set. Workers or jobs may be configured with `dead: false` to
+  prevent being moved to the dead set.
 
 ### Bug Fixes
 

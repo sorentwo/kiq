@@ -11,7 +11,7 @@ defmodule Kiq.Worker do
   Define a worker to process jobs in the `events` queue:
 
       defmodule MyApp.Workers.Business do
-        use Kiq.Worker, queue: "events"
+        use Kiq.Worker, queue: "events", retry: 10, dead: false
 
         @impl Kiq.Worker
         def perform(args) do
@@ -35,7 +35,7 @@ defmodule Kiq.Worker do
   alias Kiq.Job
 
   @type args :: list(any())
-  @type opts :: [queue: binary(), retry: boolean()]
+  @type opts :: [queue: binary(), dead: boolean(), retry: boolean()]
 
   @doc """
   Build a job for this worker using all default options.

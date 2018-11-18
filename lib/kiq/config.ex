@@ -14,6 +14,8 @@ defmodule Kiq.Config do
   @type t :: %__MODULE__{
           client_name: term(),
           client_opts: Keyword.t(),
+          dead_limit: pos_integer(),
+          dead_timeout: pos_integer(),
           elect_ttl: pos_integer(),
           extra_reporters: list(module()),
           fetch_interval: pos_integer(),
@@ -32,6 +34,8 @@ defmodule Kiq.Config do
 
   defstruct client_name: Client,
             client_opts: [],
+            dead_limit: 10_000,
+            dead_timeout: 180 * 24 * 60 * 60,
             elect_ttl: 60_000,
             extra_reporters: [],
             fetch_interval: 500,

@@ -99,14 +99,18 @@ defmodule Kiq.IntegrationTest do
     end)
   end
 
-  test "jobs are not enqueued when retries are exhausted" do
+  test "jobs are moved to the dead set when retries are exhausted" do
     conn = Pool.checkout(Integration.Pool)
 
     enqueue_job("FAIL", retry: true, retry_count: 25)
+    enqueue_job("FAIL", retry: true, retry_count: 25, dead: false)
 
     assert_receive :failed
 
-    assert Introspection.set_size(conn, "retry") == 0
+    with_backoff(fn ->
+      assert Introspection.set_size(conn, "retry") == 0
+      assert Introspection.set_size(conn, "dead") == 1
+    end)
   end
 
   # Expiring Jobs

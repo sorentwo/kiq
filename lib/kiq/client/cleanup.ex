@@ -1,15 +1,16 @@
 defmodule Kiq.Client.Cleanup do
   @moduledoc false
 
-  import Redix, only: [command: 2, noreply_command: 2]
+  import Redix, only: [command: 2, noreply_command: 2, noreply_pipeline: 2]
   import Kiq.Naming, only: [backup_name: 2, unlock_name: 1]
 
-  alias Kiq.Job
+  alias Kiq.{Job, Timestamp}
 
   @typep conn :: GenServer.server()
   @typep resp :: :ok | {:error, atom() | Redix.Error.t()}
 
-  @static_keys ["leadership", "processes", "retry", "schedule"]
+  @dead_set "dead"
+  @static_keys ["leadership", "processes", "dead", "retry", "schedule"]
 
   @spec clear(conn()) :: resp()
   def clear(conn) do
@@ -20,6 +21,19 @@ defmodule Kiq.Client.Cleanup do
     keys = @static_keys ++ queues ++ unique ++ stats
 
     noreply_command(conn, ["DEL" | keys])
+  end
+
+  @spec kill(conn(), Job.t(), limit: pos_integer(), timeout: pos_integer()) :: resp()
+  def kill(conn, %Job{} = job, limit: limit, timeout: timeout) do
+    timeout_in = Timestamp.unix_in(-timeout)
+
+    commands = [
+      ["ZADD", @dead_set, Timestamp.to_score(), Job.encode(job)],
+      ["ZREMRANGEBYSCORE", @dead_set, "-inf", Timestamp.to_score(timeout_in)],
+      ["ZREMRANGEBYRANK", @dead_set, "0", to_string(-limit)]
+    ]
+
+    noreply_pipeline(conn, commands)
   end
 
   @spec remove_backup(conn(), binary(), Job.t()) :: resp()
