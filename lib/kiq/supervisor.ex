@@ -46,6 +46,7 @@ defmodule Kiq.Supervisor do
     supervisor_name = Module.concat([config.pool_name, "Supervisor"])
 
     [
+      {Registry, keys: :duplicate, name: config.registry_name},
       {PoolSupervisor, config: config, name: supervisor_name},
       {Pool, config: config, name: config.pool_name},
       {Client, config: config, name: config.client_name},
@@ -78,13 +79,10 @@ defmodule Kiq.Supervisor do
   end
 
   defp queue_spec({queue, limit}, config) do
-    queue = maybe_to_string(queue)
+    queue = to_string(queue)
     name = Module.concat(["Kiq", "Queue", String.capitalize(queue)])
     opts = [config: config, queue: queue, limit: limit, name: name]
 
     Supervisor.child_spec({QueueSupervisor, opts}, id: name)
   end
-
-  defp maybe_to_string(queue) when is_atom(queue), do: Atom.to_string(queue)
-  defp maybe_to_string(queue) when is_binary(queue), do: queue
 end

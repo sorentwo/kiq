@@ -12,13 +12,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [Script] More functionality, including dequeueing and descheduling, has been
   moved into Lua scripts. To reduce bandwidth and io overhead all `EVAL` usage
   has been replaced with `EVALSHA`.
+
 - [Identity] For purely aesthetic reasons the nonce value is now lower case.
+
 - [Reporter.Instrumenter] A new reporter that provides instrumentation data
   through [Telemetry](https://hexdocs.pm/telemetry). Reporting job execution
   metrics only requires attaching to `[:kiq, :job, event]` events.
+
 - [Reporter.Retryer] Dead jobs support! Jobs with exhausted retries are moved
   into the `dead` set. Workers or jobs may be configured with `dead: false` to
   prevent being moved to the dead set.
+
+- [Kiq] Add `configure/1` function for setting runtime configuration. Initially
+  only the `quiet` option is supported. Calling `MyKiq.configure(quiet: true)`
+  will stop all queues from starting new jobs while allowing currently running
+  jobs to finish. This can be used for graceful shutdown and smooth blue/green
+  deployment.
 
 ### Bug Fixes
 

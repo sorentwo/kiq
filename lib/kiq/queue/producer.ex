@@ -10,16 +10,16 @@ defmodule Kiq.Queue.Producer do
           config: Config.t(),
           demand: non_neg_integer(),
           fetch_interval: pos_integer(),
-          queue: binary()
+          queue: binary(),
+          quiet: boolean()
         ]
 
   defmodule State do
     @moduledoc false
 
-    defstruct [:identity, :pool, :queue, demand: 0, fetch_interval: 500]
+    defstruct [:identity, :pool, :queue, demand: 0, fetch_interval: 500, quiet: false]
   end
 
-  @doc false
   @spec start_link(opts :: options()) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name)
@@ -41,13 +41,15 @@ defmodule Kiq.Queue.Producer do
 
     state = struct(State, opts)
 
+    Registry.register(conf.registry_name, :config, [])
+
     send(self(), :fetch)
 
     {:producer, state}
   end
 
   @impl GenStage
-  def handle_info(_message, %State{demand: 0} = state) do
+  def handle_info(:fetch, %State{demand: 0} = state) do
     {:noreply, [], state}
   end
 
@@ -55,6 +57,12 @@ defmodule Kiq.Queue.Producer do
     state
     |> schedule_fetch()
     |> dispatch()
+  end
+
+  def handle_info({:configure, opts}, state) do
+    quiet = Keyword.get(opts, :quiet, false)
+
+    dispatch(%{state | quiet: quiet})
   end
 
   @impl GenStage
@@ -65,6 +73,10 @@ defmodule Kiq.Queue.Producer do
   end
 
   # Helpers
+
+  defp dispatch(%State{quiet: true} = state) do
+    {:noreply, [], state}
+  end
 
   defp dispatch(%State{demand: demand} = state) do
     jobs =

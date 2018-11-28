@@ -50,8 +50,10 @@ defmodule Kiq do
 
   1. Options passed into via the `use` macro. These should be constant compile
      time options, i.e. `extra_reporters`.
+
   2. Options passed to `start_link/1` by the application's supervision tree.
      These should also be values suitable for compile time.
+
   3. Injected by the `init/2` callback inside your application's Kiq instance.
      This is where runtime configuration such as the Redis URL or environment
      specific options should be passed. The options can come from any dynamic
@@ -77,40 +79,64 @@ defmodule Kiq do
   The `opts` argument contains all configuration from stages 1 and 2 (the `use`
   macro and the call to `start_link/1`).
 
-  ### Configuration Options
+  ### Supervisor Configuration
 
-  * `client_opts` — A keyword list of options passed to each Redix connection.
-    If the opts contain the key `redis_url` then it will be passed to
-    `Redix.start_link/1` as the lone argument.
-  * `dead_limit` — The maximum number of jobs that will be retained in the dead
+  These configuration options must be provided to the supervision tree on startup:
+
+  * `:client_opts` — A keyword list of options passed to each `Redix`
+    connection.  This *must* contain the key `:redis_url`, which is passed to
+    `Redix.start_link/1` as the first argument.
+
+  * `:dead_limit` — The maximum number of jobs that will be retained in the dead
     set. Jobs beyond the limit are pruned any time a new job is moved to the dead
     set. The default is `10_000`.
-  * `dead_timeout` — The maximum amount of time that a job will remain in the
+
+  * `:dead_timeout` — The maximum amount of time that a job will remain in the
     dead set before being purged, specified in seconds. The default is 6 months.
-  * `extra_reporters` — Additional reporters that your application will use to
+
+  * `:extra_reporters` — Additional reporters that your application will use to
     report errors, track external stats, etc.
-  * `fetch_interval` — How frequently to poll for new jobs. Polling only
+
+  * `:fetch_interval` — How frequently to poll for new jobs. Polling only
     happens when consumers aren't actively requesting new jobs.
-  * `flush_interval` - How frequently locally enqueued jobs will be pushed to
+
+  * `:flush_interval` - How frequently locally enqueued jobs will be pushed to
     Redis. This defaults to `10ms`, though it will back-off by a factor of `1.5`
     if there are any connection errors.
-  * `pool_size` — Controls the number of Redis connections available to Kiq,
+
+  * `:pool_size` — Controls the number of Redis connections available to Kiq,
     defaults to 5.
-  * `queues` — A keyword list of queues where each entry is the name of the
+
+  * `:queues` — A keyword list of queues where each entry is the name of the
     queue and the concurrency setting. For example, setting `[default: 10,
     exports: 5, media: 5]` would start the queues `default`, `exports` and
     `media` with a combined concurrency of 20. The concurrency setting
     specifies how many jobs _each queue_ will run concurrently.
-  * `schedulers` — A list of schedulers to run. The default schedulers are
+
+  * `:schedulers` — A list of schedulers to run. The default schedulers are
     "retry" which is used to retry failed jobs with a backoff and "schedule",
     used to enqueue jobs at a specific time in the future. Set this to an empty
     list to disable all schedulers and allow Sidekiq to handle enqueuing
     retries and scheduled jobs.
-  * `server?` — Whether to start the queue supervisors and start processing
+
+  * `:server?` — Whether to start the queue supervisors and start processing
     jobs or only start the client. This setting is useful for testing or
     deploying your application's web and workers separately.
-  * `test_mode` — Either `:disabled` or `:sandbox`. See
+
+  * `:test_mode` — Either `:disabled` or `:sandbox`. See
     [Testing](#module-testing) for details.
+
+  ### Runtime Configuration
+
+  These configuration options may be provided when starting a Kiq supervisor,
+  but may also be set dynamically at runtime:
+
+  * `:quiet` — Instruct each queue to stop processing new jobs. Any in-progress
+  jobs will keep running uninterrupted.
+
+  For example, to quiet all queue producers:
+
+      MyKiq.configure(quiet: true)
 
   ## Testing
 
@@ -139,6 +165,7 @@ defmodule Kiq do
 
   * The local job buffer is stored in memory, if the server is restarted
     suddently some jobs may be lost.
+
   * There isn't any limit on the number of jobs that can be buffered. However,
     to conserve space jobs are stored compressed.
 
@@ -187,6 +214,7 @@ defmodule Kiq do
   * Note that job uniqueness is calculated from the `class`, `args`, and
     `queue`. This means that jobs with identical args may be added to different
     queues.
+
   * Unique jobs enqueued by Sidekiq will be unlocked by Kiq, but they may not
     use the same lock value. This is due to differences between hashing Erlang
     terms and Ruby objects. To help ensure uniqueness always enqueue unique jobs
@@ -280,6 +308,13 @@ defmodule Kiq do
   @callback clear() :: :ok
 
   @doc """
+  Set runtime configuration values.
+
+  See the "Runtime Configuration" section in the `Kiq` module documentation.
+  """
+  @callback configure(Keyword.t()) :: :ok
+
+  @doc """
   Enqueue a job to be processed asynchronously.
 
   Jobs can be enqueued from `Job` structs, maps or keyword lists.
@@ -313,6 +348,7 @@ defmodule Kiq do
 
       @client_name Module.concat(__MODULE__, "Client")
       @pool_name Module.concat(__MODULE__, "Pool")
+      @registry_name Module.concat(__MODULE__, "Registry")
       @reporter_name Module.concat(__MODULE__, "Reporter")
       @senator_name Module.concat(__MODULE__, "Senator")
       @supervisor_name Module.concat(__MODULE__, "Supervisor")
@@ -322,6 +358,7 @@ defmodule Kiq do
             |> Keyword.put(:name, @supervisor_name)
             |> Keyword.put(:client_name, @client_name)
             |> Keyword.put(:pool_name, @pool_name)
+            |> Keyword.put(:registry_name, @registry_name)
             |> Keyword.put(:reporter_name, @reporter_name)
             |> Keyword.put(:senator_name, @senator_name)
 
@@ -350,11 +387,16 @@ defmodule Kiq do
       end
 
       @impl Kiq
+      def configure(opts) when is_list(opts) do
+        Kiq.configure(@registry_name, Keyword.take(opts, [:quiet]))
+      end
+
+      @impl Kiq
       def enqueue(job_args, job_opts \\ []) when is_map(job_args) or is_list(job_args) do
         Kiq.enqueue(@client_name, job_args, job_opts)
       end
 
-      defoverridable child_spec: 1, enqueue: 2, init: 2, start_link: 1
+      defoverridable Kiq
     end
   end
 
@@ -374,4 +416,11 @@ defmodule Kiq do
   defp with_opts(job, []), do: job
   defp with_opts(job, at: timestamp), do: %Job{job | at: timestamp}
   defp with_opts(job, in: seconds), do: %Job{job | at: Timestamp.unix_in(seconds)}
+
+  @doc false
+  def configure(registry, opts) do
+    Registry.dispatch(registry, :config, fn entries ->
+      for {pid, _} <- entries, do: send(pid, {:configure, opts})
+    end)
+  end
 end
