@@ -20,7 +20,7 @@ defmodule Kiq.MixProject do
 
       # Dialyzer
       dialyzer: [
-        plt_add_apps: [:ex_unit],
+        plt_add_apps: [:eex, :ex_unit, :mix],
         flags: [:error_handling, :race_conditions, :underspecs]
       ],
 

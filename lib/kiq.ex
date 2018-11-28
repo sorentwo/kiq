@@ -12,7 +12,11 @@ defmodule Kiq do
   one or more Kiq modules within your application. This allows multiple
   supervision trees with entirely different configurations.
 
-  Define a Kiq module for your application:
+  Run the generator to create a new `Kiq` supervisor for your application:
+
+      mix kiq.gen.supervisor -m MyApp.Kiq
+
+  Alternatively, manually define a `Kiq` module for your application:
 
       defmodule MyApp.Kiq do
         use Kiq, queues: [default: 25, events: 50]
@@ -64,7 +68,6 @@ defmodule Kiq do
   additional configuration. For example, to grab values from
   `Application.get_env/2`:
 
-      @impl Kiq
       def init(_reason, opts) do
         for_env = Application.get_env(:my_app, :kiq, [])
 

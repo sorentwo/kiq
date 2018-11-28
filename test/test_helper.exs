@@ -1,4 +1,5 @@
 Logger.configure_backend(:console, level: :warn)
+Mix.shell(Mix.Shell.Process)
 
 ExUnit.start(assert_receive_timeout: 1500, refute_receive_timeout: 1500)
 
@@ -65,5 +66,30 @@ defmodule Kiq.Case do
           reraise(exception, System.stacktrace())
         end
     end
+  end
+
+  # Mix Generators
+
+  @tmp "../tmp"
+
+  def in_tmp(dir, fun) do
+    path =
+      @tmp
+      |> Path.expand(__DIR__)
+      |> Path.join(dir)
+
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    File.cd!(path, fun)
+  end
+
+  def delete_tempfiles do
+    @tmp
+    |> Path.expand(__DIR__)
+    |> File.rm_rf!()
+  end
+
+  def ensure_formatted!(file) do
+    Mix.Tasks.Format.run(["--check-formatted", file])
   end
 end

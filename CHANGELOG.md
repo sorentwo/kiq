@@ -23,11 +23,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   into the `dead` set. Workers or jobs may be configured with `dead: false` to
   prevent being moved to the dead set.
 
-- [Kiq] Add `configure/1` function for setting runtime configuration. Initially
-  only the `quiet` option is supported. Calling `MyKiq.configure(quiet: true)`
-  will stop all queues from starting new jobs while allowing currently running
-  jobs to finish. This can be used for graceful shutdown and smooth blue/green
-  deployment.
+- [Kiq] Quiet support! The `configure/1` function can be used to set runtime
+  configuration. Calling `MyKiq.configure(quiet: true)` will stop all queues
+  from starting new jobs while allowing currently running jobs to finish. This
+  can be used for graceful shutdown and smooth blue/green deployment.
+
+- [mix kiq.gen.supervisor] A new generator to create an initial Kiq supervisor
+  module.
 
 ### Bug Fixes
 
