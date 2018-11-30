@@ -14,37 +14,40 @@ defmodule Kiq.Reporter.LoggerTest do
   test "job start is logged", %{job: job} do
     message = capture_log(fn -> Reporter.handle_started(job, nil) end)
 
+    assert message =~ "started"
     assert message =~ "Worker"
     assert message =~ "testing"
     assert message =~ job.jid
-    assert message =~ "started"
   end
 
   test "job success is logged with timing information", %{job: job} do
     message = capture_log(fn -> Reporter.handle_success(job, [timing: 103], nil) end)
 
+    assert message =~ "success"
     assert message =~ "Worker"
     assert message =~ "testing"
     assert message =~ job.jid
     assert message =~ "103 µs"
-    assert message =~ "success"
   end
 
   test "job abort is logged with the reason", %{job: job} do
     message = capture_log(fn -> Reporter.handle_aborted(job, [reason: :expired], nil) end)
 
+    assert message =~ "aborted"
     assert message =~ "Worker"
     assert message =~ "expired"
-    assert message =~ "aborted"
   end
 
   test "job failure is logged with exception information", %{job: job} do
+    job = %{job | retry_count: 5}
+
     message = capture_log(fn -> Reporter.handle_failure(job, %RuntimeError{}, [], nil) end)
 
+    assert message =~ "failure"
     assert message =~ "Worker"
     assert message =~ "testing"
     assert message =~ job.jid
     assert message =~ "RuntimeError"
-    assert message =~ "failure"
+    assert message =~ ~s("retry_count":5)
   end
 end

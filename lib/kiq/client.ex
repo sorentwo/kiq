@@ -1,9 +1,9 @@
 defmodule Kiq.Client do
   @moduledoc false
 
-  require Logger
-
   use GenServer
+
+  import Kiq.Logger, only: [log: 1]
 
   alias Kiq.{Config, Pool, Job}
   alias Kiq.Client.{Cleanup, Queueing}
@@ -161,14 +161,14 @@ defmodule Kiq.Client do
   end
 
   defp transition_to_success(%State{start_interval: interval} = state) do
-    Logger.info(fn -> "Enqueueing Restored" end)
+    log(%{event: "enqueueing_restored", details: "enqueueing has been restored"})
 
     %{state | flush_interval: interval}
   end
 
   defp transition_to_failed(state, reason) do
     if state.flush_interval == state.start_interval do
-      Logger.info(fn -> "Enqueueing Failed: #{inspect(reason)}" end)
+      log(%{event: "enqueueing_failed", details: inspect(reason)})
     end
 
     interval = Enum.min([trunc(state.flush_interval * 1.5), state.flush_maximum])

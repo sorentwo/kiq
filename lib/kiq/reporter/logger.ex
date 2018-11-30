@@ -1,20 +1,20 @@
 defmodule Kiq.Reporter.Logger do
   @moduledoc false
 
-  require Logger
-
   use Kiq.Reporter
+
+  import Kiq.Logger, only: [log: 1]
 
   alias Kiq.{Job, Reporter}
 
   # Callbacks
 
   @impl Reporter
-  def handle_started(%Job{class: class, jid: jid, queue: queue}, state) do
-    log_formatted(%{
-      worker: class,
-      queue: queue,
-      jid: jid,
+  def handle_started(%Job{} = job, state) do
+    log(%{
+      worker: job.class,
+      queue: job.queue,
+      jid: job.jid,
       status: "started"
     })
 
@@ -22,13 +22,13 @@ defmodule Kiq.Reporter.Logger do
   end
 
   @impl Reporter
-  def handle_success(%Job{class: class, jid: jid, queue: queue}, meta, state) do
+  def handle_success(%Job{} = job, meta, state) do
     timing = Keyword.get(meta, :timing, 0)
 
-    log_formatted(%{
-      worker: class,
-      queue: queue,
-      jid: jid,
+    log(%{
+      worker: job.class,
+      queue: job.queue,
+      jid: job.jid,
       timing: "#{timing} µs",
       status: "success"
     })
@@ -37,13 +37,13 @@ defmodule Kiq.Reporter.Logger do
   end
 
   @impl Reporter
-  def handle_aborted(%Job{class: class, jid: jid, queue: queue}, meta, state) do
+  def handle_aborted(%Job{} = job, meta, state) do
     reason = Keyword.get(meta, :reason, :unknown)
 
-    log_formatted(%{
-      worker: class,
-      queue: queue,
-      jid: jid,
+    log(%{
+      worker: job.class,
+      queue: job.queue,
+      jid: job.jid,
       reason: reason,
       status: "aborted"
     })
@@ -52,12 +52,13 @@ defmodule Kiq.Reporter.Logger do
   end
 
   @impl Reporter
-  def handle_failure(%Job{class: class, jid: jid, queue: queue}, error, _stack, state) do
-    log_formatted(%{
-      worker: class,
-      queue: queue,
-      jid: jid,
+  def handle_failure(%Job{} = job, error, _stack, state) do
+    log(%{
+      worker: job.class,
+      queue: job.queue,
+      jid: job.jid,
       error: error_name(error),
+      retry_count: job.retry_count,
       status: "failure"
     })
 
@@ -65,10 +66,6 @@ defmodule Kiq.Reporter.Logger do
   end
 
   # Helpers
-
-  defp log_formatted(payload) do
-    Logger.info(fn -> Jason.encode!(payload) end)
-  end
 
   defp error_name(error) do
     %{__struct__: module} = Exception.normalize(:error, error)

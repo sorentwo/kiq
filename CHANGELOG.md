@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [Identity] For purely aesthetic reasons the nonce value is now lower case.
 
+- [Logger] Consistently format logs as JSON. Previously some ad-hoc logs were
+  unstructured, which made parsing difficult. Additionally, logs now contain
+  `"source":"kiq"` for easier identification.
+
 ### Fixed
 
 - [Kiq] In progress backup queues, AKA "Private Queues", are now implemented

@@ -146,8 +146,8 @@ defmodule Kiq.IntegrationTest do
           assert_receive {:processed, 2}
         end)
 
-      assert logged =~ ~s("queue":"integration","reason":"expired","status":"aborted")
-      assert logged =~ ~s("queue":"integration","status":"success")
+      assert logged =~ ~s("reason":"expired","source":"kiq","status":"aborted")
+      assert logged =~ ~s("status":"success")
     end
   end
 
