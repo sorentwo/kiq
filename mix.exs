@@ -56,7 +56,7 @@ defmodule Kiq.MixProject do
     [
       {:jason, "~> 1.1"},
       {:gen_stage, "~> 0.14"},
-      {:redix, "~> 0.8"},
+      {:redix, "~> 0.9"},
       {:telemetry, "~> 0.2"},
       {:benchee, "~> 0.13", only: [:dev], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},

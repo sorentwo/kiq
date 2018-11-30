@@ -168,7 +168,7 @@ defmodule Kiq.Client do
 
   defp transition_to_failed(state, reason) do
     if state.flush_interval == state.start_interval do
-      Logger.warn(fn -> "Enqueueing Failed: #{inspect(reason)}" end)
+      Logger.info(fn -> "Enqueueing Failed: #{inspect(reason)}" end)
     end
 
     interval = Enum.min([trunc(state.flush_interval * 1.5), state.flush_maximum])

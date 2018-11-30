@@ -41,11 +41,14 @@ defmodule Kiq.IntegrationTest do
 
     test "jobs are reliably enqueued desipite network failures" do
       {:ok, redix} = Redix.start_link(redis_url())
-      {:ok, 1} = Redix.command(redix, ["CLIENT", "KILL", "TYPE", "normal"])
 
-      enqueue_job("OK")
+      capture_log(fn ->
+        {:ok, 1} = Redix.command(redix, ["CLIENT", "KILL", "TYPE", "normal"])
 
-      assert_receive {:processed, "OK"}, 3_000
+        enqueue_job("OK")
+
+        assert_receive {:processed, "OK"}, 3_000
+      end)
     end
   end
 
