@@ -8,7 +8,14 @@ defmodule Kiq.WorkerTest do
   end
 
   defmodule CustomWorker do
-    use Worker, queue: "special", retry: 5, dead: false
+    use Worker,
+      queue: "special",
+      retry: 5,
+      dead: false,
+      expires_in: 100,
+      unique_for: 200,
+      unique_until: :start,
+      unique_token: "thiswillbeignored"
 
     @impl Worker
     def perform([a, b]) do
@@ -28,7 +35,11 @@ defmodule Kiq.WorkerTest do
       assert job.class == "Elixir.Kiq.WorkerTest.CustomWorker"
       assert job.queue == "special"
       assert job.retry == 5
+      assert job.expires_in == 100
+      assert job.unique_for == 200
+      assert job.unique_until == "start"
       refute job.dead
+      refute job.unique_token
     end
   end
 

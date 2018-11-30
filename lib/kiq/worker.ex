@@ -35,7 +35,14 @@ defmodule Kiq.Worker do
   alias Kiq.Job
 
   @type args :: list(any())
-  @type opts :: [queue: binary(), dead: boolean(), retry: boolean()]
+  @type opts :: [
+          queue: binary(),
+          dead: boolean(),
+          expires_in: pos_integer(),
+          retry: boolean(),
+          unique_for: pos_integer(),
+          unique_until: binary()
+        ]
 
   @doc """
   Build a job for this worker using all default options.
@@ -51,8 +58,13 @@ defmodule Kiq.Worker do
   """
   @callback perform(args :: args()) :: any()
 
+  @allowed_opts [:queue, :dead, :expires_in, :retry, :unique_for, :unique_until]
+
   defmacro __using__(opts) do
-    opts = Keyword.put_new(opts, :queue, "default")
+    opts =
+      opts
+      |> Keyword.take(@allowed_opts)
+      |> Keyword.put_new(:queue, "default")
 
     quote do
       alias Kiq.Worker
@@ -69,7 +81,7 @@ defmodule Kiq.Worker do
         :ok
       end
 
-      defoverridable new: 1, perform: 1
+      defoverridable Worker
     end
   end
 
