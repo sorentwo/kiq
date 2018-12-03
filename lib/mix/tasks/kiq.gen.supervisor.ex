@@ -24,20 +24,22 @@ defmodule Mix.Tasks.Kiq.Gen.Supervisor do
 
     @impl true
     def init(_reason, opts) do
+      test_mode = if testing?(), do: :sandbox, else: :disabled
+
       opts =
         opts
         |> Keyword.put(:client_opts, redis_url: System.get_env("REDIS_URL"))
         |> Keyword.put(:server?, start_server?())
+        |> Keyword.put(:test_mode, test_mode)
 
       {:ok, opts}
     end
 
-    defp start_server? do
-      testing? = Code.ensure_loaded?(Mix) && Mix.env() == :test
-      console? = Code.ensure_loaded?(IEx) && IEx.started?()
+    defp console?, do: Code.ensure_loaded?(IEx) and IEx.started?()
 
-      not testing? && not console?
-    end
+    defp testing?, do: Code.ensure_loaded?(Mix) and Mix.env() == :test
+
+    defp start_server?, do: not testing?() and not console?()
   end
   """)
 

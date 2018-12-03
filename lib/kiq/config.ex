@@ -61,6 +61,58 @@ defmodule Kiq.Config do
       |> Map.new()
       |> Map.put_new(:identity, identity())
 
+    Enum.each(opts, &validate_opt!/1)
+
     struct!(__MODULE__, opts)
   end
+
+  defp validate_opt!({:pool_size, pool_size}) do
+    unless is_integer(pool_size) and pool_size > 0 do
+      raise ArgumentError, "expected :pool_size to be an integer greater than 0"
+    end
+  end
+
+  defp validate_opt!({:queues, queues}) do
+    valid_queues? = fn ->
+      queues
+      |> Keyword.values()
+      |> Enum.all?(fn size -> is_integer(size) and size > 0 end)
+    end
+
+    unless Keyword.keyword?(queues) and valid_queues?.() do
+      raise ArgumentError, "expected :queues to be a keyword list of {atom, integer} pairs"
+    end
+  end
+
+  defp validate_opt!({key, reporters}) when key in [:extra_reporters, :reporters] do
+    valid_reporters? = fn ->
+      Enum.all?(reporters, fn reporter ->
+        is_atom(reporter) and Code.ensure_loaded?(reporter) and
+          function_exported?(reporter, :handle_events, 3)
+      end)
+    end
+
+    unless is_list(reporters) and valid_reporters?.() do
+      raise ArgumentError,
+            "expected :reporters to be a list of modules implementing the Kiq.Reporter behaviour"
+    end
+  end
+
+  defp validate_opt!({:schedulers, schedulers}) do
+    valid_schedulers? = fn ->
+      Enum.all?(schedulers, fn scheduler -> is_binary(scheduler) or is_atom(scheduler) end)
+    end
+
+    unless is_list(schedulers) and valid_schedulers?.() do
+      raise ArgumentError, "expected :schedulers to be a list of binaries or atoms"
+    end
+  end
+
+  defp validate_opt!({:test_mode, test_mode}) do
+    unless test_mode in [:disabled, :sandbox] do
+      raise ArgumentError, "expected :test_mode to be either :disabled or :sandbox"
+    end
+  end
+
+  defp validate_opt!(_opt), do: :ok
 end
