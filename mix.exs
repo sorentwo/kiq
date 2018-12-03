@@ -60,7 +60,7 @@ defmodule Kiq.MixProject do
       {:telemetry, "~> 0.2"},
       {:benchee, "~> 0.13", only: [:dev], runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.19-rc", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.19", only: [:dev, :test], runtime: false},
       {:stream_data, "~> 0.4", only: [:test]}
     ]
   end
