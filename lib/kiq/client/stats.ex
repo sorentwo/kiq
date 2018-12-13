@@ -17,15 +17,13 @@ defmodule Kiq.Client.Stats do
     info = Jason.encode!(heartbeat)
 
     commands = [
-      ["MULTI"],
       ["SADD", "processes", key],
       ["HMSET", key, "info", info, "beat", to_string(beat)],
       ["HMSET", key, "busy", to_string(busy), "quiet", to_string(quiet)],
       ["EXPIRE", key, "60"],
       ["DEL", wkey],
       ["HMSET" | [wkey | Enum.flat_map(running, &running_detail/1)]],
-      ["EXPIRE", wkey, "60"],
-      ["EXEC"]
+      ["EXPIRE", wkey, "60"]
     ]
 
     noreply_pipeline(conn, commands)
@@ -38,12 +36,10 @@ defmodule Kiq.Client.Stats do
     failed = Keyword.fetch!(stats, :failure)
 
     commands = [
-      ["MULTI"],
       ["INCRBY", "stat:processed", processed],
       ["INCRBY", "stat:processed:#{date}", processed],
       ["INCRBY", "stat:failed", failed],
-      ["INCRBY", "stat:failed:#{date}", failed],
-      ["EXEC"]
+      ["INCRBY", "stat:failed:#{date}", failed]
     ]
 
     noreply_pipeline(conn, commands)

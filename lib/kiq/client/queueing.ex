@@ -77,10 +77,8 @@ defmodule Kiq.Client.Queueing do
     job = %Job{job | enqueued_at: Timestamp.unix_now()}
 
     commands = [
-      ["MULTI"],
       ["SADD", "queues", queue],
-      ["LPUSH", queue_name(queue), Job.encode(job)],
-      ["EXEC"]
+      ["LPUSH", queue_name(queue), Job.encode(job)]
     ]
 
     :ok = noreply_pipeline!(conn, commands)

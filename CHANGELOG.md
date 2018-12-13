@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- [Kiq.Client] Eliminate use of `MUTLI/EXEC` for stats and queuing. This caused
+  a race condition that could prevent stats being recorded and jobs from being
+  enqueued.
+
 ## [0.4.0] — 2018-12-03
 
 ### Added
