@@ -12,10 +12,10 @@ defmodule Kiq.Reporter.Logger do
   @impl Reporter
   def handle_started(%Job{} = job, state) do
     log(%{
-      worker: job.class,
-      queue: job.queue,
+      event: "job_started",
       jid: job.jid,
-      status: "started"
+      queue: job.queue,
+      worker: job.class
     })
 
     state
@@ -26,11 +26,11 @@ defmodule Kiq.Reporter.Logger do
     timing = Keyword.get(meta, :timing, 0)
 
     log(%{
-      worker: job.class,
-      queue: job.queue,
+      event: "job_success",
       jid: job.jid,
+      queue: job.queue,
       timing: "#{timing} µs",
-      status: "success"
+      worker: job.class
     })
 
     state
@@ -41,11 +41,11 @@ defmodule Kiq.Reporter.Logger do
     reason = Keyword.get(meta, :reason, :unknown)
 
     log(%{
-      worker: job.class,
-      queue: job.queue,
+      event: "job_aborted",
       jid: job.jid,
+      queue: job.queue,
       reason: reason,
-      status: "aborted"
+      worker: job.class
     })
 
     state
@@ -54,12 +54,12 @@ defmodule Kiq.Reporter.Logger do
   @impl Reporter
   def handle_failure(%Job{} = job, error, _stack, state) do
     log(%{
-      worker: job.class,
-      queue: job.queue,
-      jid: job.jid,
       error: error_name(error),
+      event: "job_failure",
+      jid: job.jid,
+      queue: job.queue,
       retry_count: job.retry_count,
-      status: "failure"
+      worker: job.class
     })
 
     state

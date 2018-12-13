@@ -31,9 +31,9 @@ defmodule Kiq.IntegrationTest do
           end
         end)
 
-      assert logged =~ ~s("status":"started")
-      assert logged =~ ~s("status":"success")
-      refute logged =~ ~s("status":"failure")
+      assert logged =~ ~s("event":"job_started")
+      assert logged =~ ~s("event":"job_success")
+      refute logged =~ ~s("event":"job_failure")
     end
 
     test "jobs are reliably enqueued desipite network failures" do
@@ -143,8 +143,8 @@ defmodule Kiq.IntegrationTest do
           assert_receive {:processed, 2}
         end)
 
-      assert logged =~ ~s("reason":"expired","source":"kiq","status":"aborted")
-      assert logged =~ ~s("status":"success")
+      assert logged =~ ~s("reason":"expired","source":"kiq")
+      assert logged =~ ~s("event":"job_success")
     end
   end
 
