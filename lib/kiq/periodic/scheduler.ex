@@ -9,7 +9,9 @@ defmodule Kiq.Periodic.Scheduler do
   @typep options :: [config: Config.t(), name: identifier()]
 
   @lock_key "periodic"
-  @lock_ttl 60
+
+  # Avoid race conditions by locking for just under a minute
+  @lock_ttl 59
 
   defmodule State do
     @moduledoc false

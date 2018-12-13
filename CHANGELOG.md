@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- [Kiq.Periodic] Periodic jobs support! Periodic (AKA "Cron") jobs are
+  registered with a schedule and enqueued automatically by Kiq accordingly.
+  This is a fully fledged alternative to using a separate scheduler such as
+  [Quantum][quantum].
+
+[quantum]: https://github.com/quantum-elixir/quantum-core
+
 ### Fixed
 
 - [Kiq.Client] Eliminate use of `MUTLI/EXEC` for stats and queuing. This caused

@@ -90,6 +90,5 @@ defmodule Kiq.Periodic.Parser do
     |> concat(months)
     |> ignore(string(" "))
     |> concat(weekdays)
-    |> eos()
   )
 end
