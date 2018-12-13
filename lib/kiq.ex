@@ -166,11 +166,11 @@ defmodule Kiq do
 
   ### Caveats
 
-  * The local job buffer is stored in memory, if the server is restarted
-    suddently some jobs may be lost.
+    * The local job buffer is stored in memory, if the server is restarted
+      suddently some jobs may be lost.
 
-  * There isn't any limit on the number of jobs that can be buffered. However,
-    to conserve space jobs are stored compressed.
+    * There isn't any limit on the number of jobs that can be buffered.
+      However, to conserve space jobs are stored compressed.
 
   [rely]: https://github.com/mperham/sidekiq/wiki/Pro-Reliability-Client
 
@@ -214,14 +214,14 @@ defmodule Kiq do
 
   ### Caveats
 
-  * Note that job uniqueness is calculated from the `class`, `args`, and
-    `queue`. This means that jobs with identical args may be added to different
-    queues.
+    * Note that job uniqueness is calculated from the `class`, `args`, and
+      `queue`. This means that jobs with identical args may be added to different
+      queues.
 
-  * Unique jobs enqueued by Sidekiq will be unlocked by Kiq, but they may not
-    use the same lock value. This is due to differences between hashing Erlang
-    terms and Ruby objects. To help ensure uniqueness always enqueue unique jobs
-    from either Sidekiq or Kiq.
+    * Unique jobs enqueued by Sidekiq will be unlocked by Kiq, but they may not
+      use the same lock value. This is due to differences between hashing Erlang
+      terms and Ruby objects. To help ensure uniqueness always enqueue unique jobs
+      from either Sidekiq or Kiq.
 
   [uniq]: https://github.com/mperham/sidekiq/wiki/Ent-Unique-Jobs
 
@@ -265,13 +265,15 @@ defmodule Kiq do
   rules][cron] and has one minute resolution. That means it isn't possible to
   enqueue a job ever N seconds.
 
-  #### Notes
+  ### Caveats
 
     * All schedules are evaluated as UTC, the local timezone is never taken
       into account.
+
     * Periodic jobs registered in Kiq _aren't_ visible in the Loop panel of the
       Sidekiq Dashboard. This is due to the way loop data is stored by Sidekiq
       and can't be worked around.
+
     * This is an alternative to using using a separate scheduler such as
       [Quantum][quan]. However, unlike Quantum, Kiq doesn't support node based
       clustering, instead it uses Redis to coordinate and distrubte work. This
