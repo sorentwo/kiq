@@ -166,11 +166,11 @@ defmodule Kiq do
 
   ### Caveats
 
-  * The local job buffer is stored in memory, if the server is restarted
-    suddently some jobs may be lost.
+    * The local job buffer is stored in memory, if the server is restarted
+      suddently some jobs may be lost.
 
-  * There isn't any limit on the number of jobs that can be buffered. However,
-    to conserve space jobs are stored compressed.
+    * There isn't any limit on the number of jobs that can be buffered.
+      However, to conserve space jobs are stored compressed.
 
   [rely]: https://github.com/mperham/sidekiq/wiki/Pro-Reliability-Client
 
@@ -214,14 +214,14 @@ defmodule Kiq do
 
   ### Caveats
 
-  * Note that job uniqueness is calculated from the `class`, `args`, and
-    `queue`. This means that jobs with identical args may be added to different
-    queues.
+    * Note that job uniqueness is calculated from the `class`, `args`, and
+      `queue`. This means that jobs with identical args may be added to different
+      queues.
 
-  * Unique jobs enqueued by Sidekiq will be unlocked by Kiq, but they may not
-    use the same lock value. This is due to differences between hashing Erlang
-    terms and Ruby objects. To help ensure uniqueness always enqueue unique jobs
-    from either Sidekiq or Kiq.
+    * Unique jobs enqueued by Sidekiq will be unlocked by Kiq, but they may not
+      use the same lock value. This is due to differences between hashing Erlang
+      terms and Ruby objects. To help ensure uniqueness always enqueue unique jobs
+      from either Sidekiq or Kiq.
 
   [uniq]: https://github.com/mperham/sidekiq/wiki/Ent-Unique-Jobs
 
@@ -241,6 +241,48 @@ defmodule Kiq do
   and 30 minutes.
 
   [expi]: https://github.com/mperham/sidekiq/wiki/Pro-Expiring-Jobs
+
+  ## Periodic Jobs
+
+  Kiq supports Sidekiq Enterprise's [Periodic Jobs][peri]. This allows jobs to
+  be registered with a schedule and enqueued automatically. Jobs are registered
+  as `{crontab, worker}` or `{crontab, worker, options}` using the `:periodics`
+  attribute:
+
+      use Kiq, periodics: [
+        {"* * * * *", MyApp.MinuteWorker},
+        {"0 * * * *", MyApp.HourlyWorker},
+        {"0 0 * * *", MyApp.DailyWorker, retry: 1},
+      ]
+
+  These jobs would be executed as follows:
+
+    * `MyApp.MinuteWorker` - Executed once every minute
+    * `MyApp.HourlyWorker` - Executed at the first minute of every hour
+    * `MyApp.DailyWorker` - Executed at midnight every day
+
+  The crontab format, as parsed by `Kiq.Parser.Crontab`, respects all [standard
+  rules][cron] and has one minute resolution. That means it isn't possible to
+  enqueue a job ever N seconds.
+
+  ### Caveats
+
+    * All schedules are evaluated as UTC, the local timezone is never taken
+      into account.
+
+    * Periodic jobs registered in Kiq _aren't_ visible in the Loop panel of the
+      Sidekiq Dashboard. This is due to the way loop data is stored by Sidekiq
+      and can't be worked around.
+
+    * This is an alternative to using using a separate scheduler such as
+      [Quantum][quan]. However, unlike Quantum, Kiq doesn't support node based
+      clustering, instead it uses Redis to coordinate and distrubte work. This
+      means workers can scale horizontally even in a restricted environment like
+      Heroku.
+
+  [peri]: https://github.com/mperham/sidekiq/wiki/Ent-Periodic-Jobs
+  [cron]: https://en.wikipedia.org/wiki/Cron#Overview
+  [quan]: https://github.com/quantum-elixir/quantum-core
 
   ## Instrumentation & Metrics
 

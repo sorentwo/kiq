@@ -4,8 +4,9 @@ defmodule Kiq.Supervisor do
   use Supervisor
 
   alias Kiq.{Client, Config, Necromancer, Pool, Senator}
+  alias Kiq.Periodic.Scheduler, as: PeriodicScheduler
   alias Kiq.Pool.Supervisor, as: PoolSupervisor
-  alias Kiq.Queue.Scheduler
+  alias Kiq.Queue.Scheduler, as: QueueScheduler
   alias Kiq.Queue.Supervisor, as: QueueSupervisor
   alias Kiq.Reporter.Supervisor, as: ReporterSupervisor
   alias Kiq.Script.BootTask
@@ -65,6 +66,7 @@ defmodule Kiq.Supervisor do
     children = [
       {Senator, config: config, name: config.senator_name},
       {Necromancer, config: config},
+      {PeriodicScheduler, config: config},
       {ReporterSupervisor, config: config}
     ]
 
@@ -75,7 +77,7 @@ defmodule Kiq.Supervisor do
     name = Module.concat(["Kiq", "Scheduler", String.capitalize(set)])
     opts = [config: config, set: set, name: name]
 
-    Supervisor.child_spec({Scheduler, opts}, id: name)
+    Supervisor.child_spec({QueueScheduler, opts}, id: name)
   end
 
   defp queue_spec({queue, limit}, config) do

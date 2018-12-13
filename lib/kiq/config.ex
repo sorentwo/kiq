@@ -3,7 +3,7 @@ defmodule Kiq.Config do
 
   import Kiq.Identity, only: [identity: 0]
 
-  alias Kiq.{Client, Pool, Reporter, Senator}
+  alias Kiq.{Client, Periodic, Pool, Reporter, Senator}
   alias Kiq.Reporter.{Instrumenter, Logger, Retryer, Stats, Unlocker}
 
   @type name :: GenServer.server()
@@ -21,6 +21,7 @@ defmodule Kiq.Config do
           fetch_interval: pos_integer(),
           flush_interval: pos_integer(),
           identity: binary(),
+          periodics: list(Periodic.t()),
           pool_name: name(),
           pool_size: pos_integer(),
           queues: list(queue_config()),
@@ -43,6 +44,7 @@ defmodule Kiq.Config do
             flush_interval: 10,
             queues: [default: 25],
             identity: nil,
+            periodics: [],
             pool_name: Pool,
             pool_size: 5,
             registry_name: Registry,
@@ -53,17 +55,31 @@ defmodule Kiq.Config do
             server?: true,
             test_mode: :disabled
 
-  @doc false
   @spec new(map() | Keyword.t()) :: t()
   def new(opts \\ %{}) when is_map(opts) or is_list(opts) do
+    Enum.each(opts, &validate_opt!/1)
+
     opts =
       opts
       |> Map.new()
       |> Map.put_new(:identity, identity())
-
-    Enum.each(opts, &validate_opt!/1)
+      |> Map.update(:periodics, [], &parse_periodics/1)
 
     struct!(__MODULE__, opts)
+  end
+
+  # Helpers
+
+  defp parse_periodics(periodics) do
+    Enum.map(periodics, &Periodic.new/1)
+  end
+
+  defp validate_opt!({:periodics, periodics}) do
+    unless is_list(periodics) and Enum.all?(periodics, &valid_periodic?/1) do
+      raise ArgumentError,
+            "expected :periodics to be a list of {expression, module} or " <>
+              "{expression, module, options} tuples"
+    end
   end
 
   defp validate_opt!({:pool_size, pool_size}) do
@@ -73,26 +89,13 @@ defmodule Kiq.Config do
   end
 
   defp validate_opt!({:queues, queues}) do
-    valid_queues? = fn ->
-      queues
-      |> Keyword.values()
-      |> Enum.all?(fn size -> is_integer(size) and size > 0 end)
-    end
-
-    unless Keyword.keyword?(queues) and valid_queues?.() do
+    unless Keyword.keyword?(queues) and Enum.all?(queues, &valid_queue?/1) do
       raise ArgumentError, "expected :queues to be a keyword list of {atom, integer} pairs"
     end
   end
 
   defp validate_opt!({key, reporters}) when key in [:extra_reporters, :reporters] do
-    valid_reporters? = fn ->
-      Enum.all?(reporters, fn reporter ->
-        is_atom(reporter) and Code.ensure_loaded?(reporter) and
-          function_exported?(reporter, :handle_events, 3)
-      end)
-    end
-
-    unless is_list(reporters) and valid_reporters?.() do
+    unless is_list(reporters) and Enum.all?(reporters, &valid_reporter?/1) do
       raise ArgumentError,
             "expected :reporters to be a list of modules implementing the Kiq.Reporter behaviour"
     end
@@ -115,4 +118,22 @@ defmodule Kiq.Config do
   end
 
   defp validate_opt!(_opt), do: :ok
+
+  defp valid_periodic?({expression, worker}) do
+    valid_periodic?({expression, worker, []})
+  end
+
+  defp valid_periodic?({expression, worker, options}) do
+    is_binary(expression) and Code.ensure_loaded?(worker) and
+      function_exported?(worker, :perform, 1) and Keyword.keyword?(options)
+  end
+
+  defp valid_periodic?(_periodic), do: false
+
+  defp valid_queue?({_name, size}), do: is_integer(size) and size > 0
+
+  defp valid_reporter?(reporter) do
+    is_atom(reporter) and Code.ensure_loaded?(reporter) and
+      function_exported?(reporter, :handle_events, 3)
+  end
 end

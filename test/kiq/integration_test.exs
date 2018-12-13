@@ -8,17 +8,14 @@ defmodule Kiq.IntegrationTest do
   @identity "ident:1234"
 
   setup do
-    {:ok, _pid} = start_supervised({Integration, identity: @identity, pool_size: 1})
+    {:ok, _pid} = start_supervised({Integration, identity: @identity})
 
     :ok = Integration.clear()
   end
 
   def capture_log(opts \\ [], fun) do
-    {sleep, opts} = Keyword.pop(opts, :sleep, 50)
-
     ExUnit.CaptureLog.capture_log(opts, fn ->
       fun.()
-      Process.sleep(sleep)
       Logger.flush()
     end)
   end
@@ -34,9 +31,9 @@ defmodule Kiq.IntegrationTest do
           end
         end)
 
-      assert logged =~ ~s("status":"started")
-      assert logged =~ ~s("status":"success")
-      refute logged =~ ~s("status":"failure")
+      assert logged =~ ~s("event":"job_started")
+      assert logged =~ ~s("event":"job_success")
+      refute logged =~ ~s("event":"job_failure")
     end
 
     test "jobs are reliably enqueued desipite network failures" do
@@ -146,8 +143,8 @@ defmodule Kiq.IntegrationTest do
           assert_receive {:processed, 2}
         end)
 
-      assert logged =~ ~s("reason":"expired","source":"kiq","status":"aborted")
-      assert logged =~ ~s("status":"success")
+      assert logged =~ ~s("reason":"expired","source":"kiq")
+      assert logged =~ ~s("event":"job_success")
     end
   end
 

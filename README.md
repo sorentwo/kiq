@@ -1,13 +1,17 @@
 # Kiq
 
 [![Build Status](https://travis-ci.org/sorentwo/kiq.svg?branch=master)](https://travis-ci.org/sorentwo/kiq)
-[![Hex.pm](https://img.shields.io/hexpm/v/kiq.svg)](https://hex.pm/packages/kiq)
+[![Hex.pm Version](http://img.shields.io/hexpm/v/kiq.svg)](https://hex.pm/packages/kiq)
+[![Hex.pm Downloads](https://img.shields.io/hexpm/dt/kiq.svg)](https://hex.pm/packages/kiq)
+[![Hex Docs](http://img.shields.io/badge/hex.pm-docs-green.svg?style=flat)](https://hexdocs.pm/kiq)
 
 Kiq is a robust and extensible job processing queue that aims for compatibility
 with [Sidekiq][sk], [Sidekiq Pro][skp] and [Sidekiq Enterprise][ske].
 
-Job queuing, processing and reporting are all built on GenStage. That means
+Job queuing, processing and reporting are all built on [GenStage][genst]. That means
 maximum parallelism with the safety of backpressure as jobs are processed.
+
+[genst]: https://github.com/elixir-lang/gen_stage
 
 ### Why Kiq?
 
@@ -33,31 +37,37 @@ be just as reliable as when jobs were ran through Sidekiq.
 
 Kiq's feature set includes many marquee offerings from Sidekiq, Sidekiq Pro and
 Sidekiq Enterprise—plus some additional niceties made possible by running on the
-BEAM.
+BEAM. Here is a table highlighting the Kiq's features compared to the various
+Sidekiq versions:
 
-These are the high level marquee features that Kiq aims to support:
+| Feature            | Kiq         | Sidekiq    | Sidekiq Pro | Sidekiq Ent |
+| ------------------ | ----------- | ---------- | ----------- | ----------- |
+| Max Size Queues    | ✅          | ❌         | ❌          | ❌          |
+| Structured Logging | ✅          | ❌         | ❌          | ❌          |
+| Scheduled Jobs     | ✅          | ✅         | ✅          | ✅          |
+| Error Handling     | ✅          | ✅         | ✅          | ✅          |
+| Expiring Jobs      | ✅          | ❌         | ✅          | ✅          |
+| Worker Metrics     | ✅          | ❌         | ✅          | ✅          |
+| Reliable Client    | ✅          | ❌         | ✅          | ✅          |
+| Reliable Server    | ✅          | ❌         | ✅          | ✅          |
+| Rolling Restarts   | ✅          | ❌         | ❌          | ✅          |
+| Periodic Jobs      | ✅          | ❌         | ❌          | ✅          |
+| Unique Jobs        | ✅          | ❌         | ❌          | ✅          |
+| Leader Election    | ✅          | ❌         | ❌          | ✅          |
+| Multi Process      | ✅          | ❌         | ❌          | ✅          |
+| Web UI †           | ❌          | ✅         | ✅          | ✅          |
+| Batch Jobs ‡       | ❌          | ❌         | ✅          | ✅          |
+| Encryption ‡       | ❌          | ❌         | ❌          | ✅          |
+| Rate Limiting ‡    | ❌          | ❌         | ❌          | ✅          |
 
-* [x] Integration with Sidekiq's Web UI and support for metrics, processes and
-  in-progress jobs
-* [x] Custom reporters for custom logging, stats, error reporting, etc.
-* [x] Reliable job fetching to prevent ever losing jobs before they are
-  processed
-* [x] Reliable job pushing in the event of network disconnection
-* [x] Unique job support, prevent enqueuing duplicate jobs within a period of time
-* [x] Leadership election, a foundation for queue resurrection and periodic jobs
-* [ ] Batch job support, monitor a collection of jobs as a group and execute
-  callbacks when all jobs are complete
-* [ ] Periodic job support, schedule jobs to be enqueued automatically on a
-  recurring basis
-* [x] Expiring job support, prevent running jobs that have exceeded an
-  expiration period
+* † Kiq relies on Sidekiq's Web UI
+* ‡ Planned, but not implemented yet
 
-Not all of Sidekiq's features are supported. If a feature isn't supported or
-planned it is _probably_ for one of these reasons:
+If a feature isn't supported or planned it is _probably_ for one of these
+reasons:
 
-1. We get it for free on the BEAM and it isn't necessary, i.e. (leader election,
-   safe shutdown, multi-process, rolling restarts)
-2. We lean on Sidekiq to do the work (Web UI)
+1. We get it for free on the BEAM and it isn't necessary, i.e. (safe shutdown,
+   multi-process, rolling restarts)
 3. We enable developers to use custom reporters to do it themselves (stats,
    error reporting)
 
@@ -79,15 +89,23 @@ Add `kiq` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:kiq, "~> 0.2"}
+    {:kiq, "~> 0.4"}
   ]
 end
 ```
 
 Then run `mix deps.get` to install the dependency.
 
+
+Finally, add the supervisor to your application's supervision tree:
+
+```elixir
+{MyApp.Kiq, []}
+```
+
 Kiq itself is not an application and must be started within your application's
-supervision tree.
+supervision tree. All of your application's configuration and custom methods
+should be put into the supervisor.
 
 ## Usage
 
@@ -95,33 +113,10 @@ Kiq isn't an application that must be started. Similarly to Ecto, you define
 one or more Kiq modules within your application. This allows multiple
 supervision trees with entirely different configurations.
 
-Define a Kiq module for your application and define an `init/2` callback for
-runtime configuration:
+Run the generator to define a Kiq supervisor for your application:
 
-```elixir
-defmodule MyApp.Kiq do
-  use Kiq, queues: [default: 25, events: 50]
-
-  @impl Kiq
-  def init(_reason, opts) do
-    for_env = Application.get_env(:my_app, :kiq, [])
-
-    opts =
-      opts
-      |> Keyword.merge(for_env)
-      |> Keyword.put(:client_opts, [redis_url: System.get_env("REDIS_URL")])
-      |> Keyword.put(:server?, start_server?())
-
-    {:ok, opts}
-  end
-
-  defp start_server? do
-    testing? = Code.ensure_loaded?(Mix) && Mix.env() == :test
-    console? = Code.ensure_loaded?(IEx) && IEx.started?
-
-    not testing? && not console?
-  end
-end
+```bash
+mix kiq.gen.supervisor MyApp.Kiq
 ```
 
 Include the module in your application's supervision tree:
@@ -145,6 +140,18 @@ defmodule MyApp.Application do
   end
 end
 ```
+
+With the supervision tree in place you are ready to start creating workers! The
+simplest way to create a worker is through the generator:
+
+```bash
+mix kiq.gen.worker MyApp.Workers.Business
+```
+
+That will define a worker with a `perform/1` function where all the magic will
+happen.
+
+See `mix help kiq.gen.worker` for additional options.
 
 Check the [hexdocs][hd] for additional details, configuration options, how to
 test, defining workers and custom reporters.
