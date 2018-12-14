@@ -89,7 +89,7 @@ Add `kiq` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:kiq, "~> 0.4"}
+    {:kiq, "~> 0.5"}
   ]
 end
 ```
