@@ -107,6 +107,10 @@ defmodule Kiq do
     Redis. This defaults to `10ms`, though it will back-off by a factor of `1.5`
     if there are any connection errors.
 
+  * `:periodics` — A list of job scheduling tuples in the form `{schedule,
+    worker}` or `{schedule, worker, options}`. See
+    [Periodic Jobs](#module-periodic-jobs) for details.
+
   * `:pool_size` — Controls the number of Redis connections available to Kiq,
     defaults to 5.
 
