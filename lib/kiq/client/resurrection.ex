@@ -30,8 +30,7 @@ defmodule Kiq.Client.Resurrection do
   # `SCAN` instead of `KEYS` just in case there are dozens or hundreds of
   # backup queues.
   defp fetch_backups(backups, cursor, conn) do
-    case command!(conn, ["SCAN", cursor, "MATCH", "queue:backup|*"]) do
-      [_cursor, []] -> backups
+    case command!(conn, ["SCAN", cursor, "MATCH", "queue:backup|*", "COUNT", "1000"]) do
       ["0", results] -> backups ++ results
       [cursor, results] -> fetch_backups(backups ++ results, cursor, conn)
     end
