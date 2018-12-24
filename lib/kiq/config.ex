@@ -31,6 +31,7 @@ defmodule Kiq.Config do
           schedulers: list(binary()),
           senator_name: name(),
           server?: boolean(),
+          stats_flush_interval: pos_integer(),
           test_mode: :disabled | :sandbox
         }
 
@@ -53,6 +54,7 @@ defmodule Kiq.Config do
             schedulers: ~w(retry schedule),
             senator_name: Senator,
             server?: true,
+            stats_flush_interval: 1_000,
             test_mode: :disabled
 
   @spec new(map() | Keyword.t()) :: t()

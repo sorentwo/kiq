@@ -20,18 +20,17 @@ defmodule Kiq.Reporter.Stats do
   @impl GenStage
   def init(opts) do
     {conf, opts} = Keyword.pop(opts, :config)
-    {fint, opts} = Keyword.pop(opts, :flush_interval, 1_000)
 
     Process.flag(:trap_exit, true)
 
-    state =
-      State
-      |> struct!(pool: conf.pool_name, queues: conf.queues, flush_interval: fint)
-      |> schedule_flush()
+    state = %State{
+      heartbeat: Heartbeat.new(queues: conf.queues, identity: conf.identity),
+      flush_interval: conf.stats_flush_interval,
+      pool: conf.pool_name,
+      queues: conf.queues
+    }
 
-    heartbeat = Heartbeat.new(queues: state.queues, identity: conf.identity)
-
-    {:consumer, %State{state | heartbeat: heartbeat}, opts}
+    {:consumer, schedule_flush(state), opts}
   end
 
   @impl GenStage

@@ -1,7 +1,7 @@
 defmodule Kiq.IntegrationTest do
   use Kiq.Case
 
-  alias Kiq.{Integration, Pool, Timestamp}
+  alias Kiq.{Integration, Pool}
   alias Kiq.Integration.Worker
   alias Kiq.Client.Introspection
 
@@ -20,15 +20,13 @@ defmodule Kiq.IntegrationTest do
     end)
   end
 
-  describe "Enqueuing & Running" do
+  describe "Enqueuing" do
     test "enqueuing and executing jobs successfully" do
       logged =
         capture_log(fn ->
-          for index <- 1..5 do
-            enqueue_job(index)
+          enqueue_job("OK")
 
-            assert_receive {:processed, ^index}
-          end
+          assert_receive {:processed, "OK"}
         end)
 
       assert logged =~ ~s("event":"job_started")
@@ -44,7 +42,7 @@ defmodule Kiq.IntegrationTest do
 
         enqueue_job("OK")
 
-        assert_receive {:processed, "OK"}, 3_000
+        assert_receive {:processed, "OK"}
       end)
     end
   end
@@ -55,7 +53,7 @@ defmodule Kiq.IntegrationTest do
 
       enqueue_job("OK")
 
-      refute_receive {:processed, "OK"}
+      refute_receive {:processed, "OK"}, 100
 
       Integration.configure(quiet: false)
 
@@ -152,7 +150,7 @@ defmodule Kiq.IntegrationTest do
     test "unique jobs with the same arguments are only enqueued once" do
       conn = Pool.checkout(Integration.Pool)
 
-      at = Timestamp.unix_in(10)
+      at = unix_in(10)
 
       {:ok, job_a} = enqueue_job("PASS", at: at, unique_for: :timer.minutes(1))
       {:ok, job_b} = enqueue_job("PASS", at: at, unique_for: :timer.minutes(1))
@@ -191,52 +189,6 @@ defmodule Kiq.IntegrationTest do
 
       with_backoff(fn ->
         refute Introspection.locked?(conn, job)
-      end)
-    end
-  end
-
-  describe "Stats" do
-    test "heartbeat process information is recorded for in-process jobs" do
-      conn = Pool.checkout(Integration.Pool)
-
-      enqueue_job("SLOW")
-
-      assert_receive :started
-
-      with_backoff(fn ->
-        assert Introspection.alive?(conn, @identity)
-      end)
-
-      heartbeat = Introspection.heartbeat(conn, @identity)
-
-      assert %{beat: _beat, busy: _busy, quiet: false} = heartbeat
-      assert %{info: %{identity: @identity, queues: ["integration"]}} = heartbeat
-
-      [details] =
-        conn
-        |> Introspection.workers(@identity)
-        |> Map.values()
-
-      assert %{queue: "integration", payload: payload, run_at: _} = details
-      assert %{jid: _jid, class: _class, retry: _retry} = payload
-
-      assert_receive :stopped
-    end
-
-    test "stats for completed jobs are recorded" do
-      conn = Pool.checkout(Integration.Pool)
-
-      enqueue_job("PASS")
-      enqueue_job("PASS")
-      enqueue_job("FAIL")
-
-      assert_receive :failed
-
-      with_backoff(fn ->
-        %{processed: new_proc, failed: new_fail} = Introspection.job_stats(conn)
-
-        assert new_proc >= 2
-        assert new_fail >= 1
       end)
     end
   end

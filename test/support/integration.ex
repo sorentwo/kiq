@@ -21,7 +21,7 @@ defmodule Kiq.Integration.Worker do
 
     send(pid, :started)
 
-    Process.sleep(1_000)
+    Process.sleep(100)
 
     send(pid, :stopped)
   end

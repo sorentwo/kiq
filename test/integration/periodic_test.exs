@@ -27,7 +27,7 @@ defmodule Kiq.Integration.PeriodicTest do
 
     {:ok, _pid} = start_supervised({Integration, periodics: [periodic("TWO")]})
 
-    refute_receive {:processed, "TWO"}
+    refute_receive {:processed, "TWO"}, 100
 
     Integration.clear()
 

@@ -49,8 +49,8 @@ defmodule Kiq.Case do
   end
 
   def with_backoff(opts \\ [], fun) do
-    total = Keyword.get(opts, :total, 50)
-    sleep = Keyword.get(opts, :sleep, 20)
+    total = Keyword.get(opts, :total, 100)
+    sleep = Keyword.get(opts, :sleep, 10)
 
     with_backoff(fun, 0, total, sleep)
   end
