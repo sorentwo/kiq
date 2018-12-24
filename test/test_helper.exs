@@ -10,6 +10,8 @@ defmodule Kiq.Case do
 
   using do
     quote do
+      import Kiq.Timestamp
+
       import unquote(__MODULE__)
     end
   end

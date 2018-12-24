@@ -135,11 +135,9 @@ defmodule Kiq.Client do
   defp perform_flush(%State{pool: pool, table: table, test_mode: :disabled} = state) do
     try do
       conn = Pool.checkout(pool)
+      jobs = :ets.foldl(fn {_key, val}, acc -> [val | acc] end, [], table)
 
-      table
-      |> :ets.tab2list()
-      |> Enum.each(&Queueing.enqueue(conn, elem(&1, 1)))
-
+      :ok = Queueing.enqueue(conn, jobs)
       true = :ets.delete_all_objects(table)
 
       transition_to_success(state)

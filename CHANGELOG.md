@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [Kiq.Client.Resurrection] Correct usage of SCAN to ensure all backup queues
   will be found for re-enqueueing.
 
+### Changed
+
+- [Kiq.Client] Enqueue all jobs in a single pipelined command. This moves all of
+  the unique, scheduling and enqueueing logic into a lua script. The script
+  reduces the number of round trips to redis and enabled pipelining. Overall
+  this improved job enqueue/execute performance from 1800 jobs/sec to slightly
+  more than 3700 jobs/sec.
+
 ## [0.5.0] — 2018-12-14
 
 ### Added

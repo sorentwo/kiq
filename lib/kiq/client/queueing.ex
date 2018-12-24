@@ -1,36 +1,27 @@
 defmodule Kiq.Client.Queueing do
   @moduledoc false
 
-  import Redix, only: [command!: 2, noreply_command!: 2, noreply_pipeline!: 2]
-  import Kiq.Naming, only: [queue_name: 1, backup_name: 2, unlock_name: 1]
+  import Redix
+  import Kiq.Naming
 
   alias Kiq.{Job, Script, Timestamp}
 
   @typep conn :: GenServer.server()
-  @typep resp :: {:ok, Job.t()}
-
-  @retry_set "retry"
-  @schedule_set "schedule"
 
   @external_resource Script.path("dequeue")
   @external_resource Script.path("deschedule")
+  @external_resource Script.path("enqueue")
   @dequeue_sha Script.hash("dequeue")
+  @enqueue_sha Script.hash("enqueue")
   @deschedule_sha Script.hash("deschedule")
 
-  @spec enqueue(conn(), Job.t()) :: resp()
-  def enqueue(conn, %Job{} = job) do
-    job
-    |> check_unique(conn)
-    |> case do
-      {:ok, %Job{at: at} = job} when is_float(at) ->
-        schedule_job(job, @schedule_set, conn)
+  @spec enqueue(conn(), list(Job.t())) :: :ok
+  def enqueue(_conn, []), do: :ok
 
-      {:ok, job} ->
-        push_job(job, conn)
+  def enqueue(conn, jobs) when is_list(jobs) do
+    commands = for job <- jobs, do: enqueue_command(job)
 
-      {:locked, job} ->
-        {:ok, job}
-    end
+    noreply_pipeline!(conn, commands)
   end
 
   @spec dequeue(conn(), binary(), binary(), pos_integer()) :: list(iodata())
@@ -43,54 +34,43 @@ defmodule Kiq.Client.Queueing do
 
   @spec deschedule(conn(), binary()) :: :ok
   def deschedule(conn, set) when is_binary(set) do
-    conn
-    |> command!(["EVALSHA", @deschedule_sha, "1", set, Timestamp.to_score()])
-    |> Enum.map(&Job.decode/1)
-    |> Enum.each(&push_job(&1, conn))
-
-    :ok
+    noreply_command!(conn, ["EVALSHA", @deschedule_sha, "1", set, Timestamp.to_score()])
   end
 
-  @spec retry(conn(), Job.t()) :: resp()
-  def retry(conn, %Job{retry: retry, retry_count: count} = job)
+  @spec retry(conn(), Job.t()) :: :ok
+  def retry(conn, %Job{at: at, retry: retry, retry_count: count} = job)
       when is_integer(retry) or (retry == true and count > 0) do
-    schedule_job(job, @retry_set, conn)
+    noreply_command!(conn, ["ZADD", "retry", Timestamp.to_score(at), Job.encode(job)])
   end
 
   # Helpers
 
-  defp check_unique(%{unlocks_at: unlocks_at} = job, conn) when is_float(unlocks_at) do
-    unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)
-    unlock_name = unlock_name(job.unique_token)
+  defp enqueue_command(%Job{queue: queue} = job) do
+    {job, enqueue_at} = maybe_enqueue_at(job)
+    {unique_key, unlocks_in} = maybe_unlocks_in(job)
 
-    command = ["SET", unlock_name, to_string(unlocks_at), "PX", to_string(unlocks_in), "NX"]
+    eval_keys = ["EVALSHA", @enqueue_sha, "1", unique_key]
+    eval_args = [Job.encode(job), queue, enqueue_at, unlocks_in]
 
-    case command!(conn, command) do
-      "OK" -> {:ok, job}
-      _res -> {:locked, job}
+    eval_keys ++ eval_args
+  end
+
+  defp maybe_enqueue_at(%Job{at: at} = job) do
+    if is_float(at) do
+      {job, Timestamp.to_score(job.at)}
+    else
+      {%{job | enqueued_at: Timestamp.unix_now()}, nil}
     end
   end
 
-  defp check_unique(job, _client), do: {:ok, job}
+  defp maybe_unlocks_in(%Job{unique_token: unique_token, unlocks_at: unlocks_at}) do
+    if is_float(unlocks_at) do
+      unique_key = unlock_name(unique_token)
+      unlocks_in = trunc((unlocks_at - Timestamp.unix_now()) * 1_000)
 
-  defp push_job(%{queue: queue} = job, conn) do
-    job = %Job{job | enqueued_at: Timestamp.unix_now()}
-
-    commands = [
-      ["SADD", "queues", queue],
-      ["LPUSH", queue_name(queue), Job.encode(job)]
-    ]
-
-    :ok = noreply_pipeline!(conn, commands)
-
-    {:ok, job}
-  end
-
-  defp schedule_job(%Job{at: at} = job, set, conn) do
-    score = Timestamp.to_score(at)
-
-    :ok = noreply_command!(conn, ["ZADD", set, score, Job.encode(job)])
-
-    {:ok, job}
+      {unique_key, to_string(unlocks_in)}
+    else
+      {nil, nil}
+    end
   end
 end

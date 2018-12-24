@@ -36,7 +36,7 @@ defmodule Kiq.IntegrationTest do
       refute logged =~ ~s("event":"job_failure")
     end
 
-    test "jobs are reliably enqueued desipite network failures" do
+    test "jobs are reliably enqueued despite network failures" do
       {:ok, redix} = Redix.start_link(redis_url())
 
       capture_log(fn ->
