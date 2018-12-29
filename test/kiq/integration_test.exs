@@ -38,7 +38,7 @@ defmodule Kiq.IntegrationTest do
       {:ok, redix} = Redix.start_link(redis_url())
 
       capture_log(fn ->
-        {:ok, 1} = Redix.command(redix, ["CLIENT", "KILL", "TYPE", "normal"])
+        {:ok, _} = Redix.command(redix, ["CLIENT", "KILL", "TYPE", "normal"])
 
         enqueue_job("OK")
 

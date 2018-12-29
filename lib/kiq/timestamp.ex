@@ -9,7 +9,7 @@ defmodule Kiq.Timestamp do
     value
     |> Kernel.*(1_000_000)
     |> trunc()
-    |> DateTime.from_unix!(:microseconds)
+    |> DateTime.from_unix!(:microsecond)
   end
 
   @doc false
@@ -24,17 +24,17 @@ defmodule Kiq.Timestamp do
   @spec unix_now() :: float()
   def unix_now do
     DateTime.utc_now()
-    |> DateTime.to_unix(:microseconds)
+    |> DateTime.to_unix(:microsecond)
     |> to_float()
   end
 
   @doc false
   @spec unix_in(offset :: integer(), unit :: atom()) :: float()
-  def unix_in(offset, unit \\ :seconds) when is_integer(offset) do
+  def unix_in(offset, unit \\ :second) when is_integer(offset) do
     NaiveDateTime.utc_now()
     |> NaiveDateTime.add(offset, unit)
     |> DateTime.from_naive!("Etc/UTC")
-    |> DateTime.to_unix(:microseconds)
+    |> DateTime.to_unix(:microsecond)
     |> to_float()
   end
 
@@ -44,7 +44,7 @@ defmodule Kiq.Timestamp do
 
   def to_score(%DateTime{} = time) do
     time
-    |> DateTime.to_unix(:microseconds)
+    |> DateTime.to_unix(:microsecond)
     |> to_score()
   end
 

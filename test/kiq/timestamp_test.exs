@@ -18,7 +18,7 @@ defmodule Kiq.TimestampTest do
   describe "unix_in/2" do
     test "a time in the future is returned as a float" do
       now = Timestamp.unix_now()
-      offset = Timestamp.unix_in(1, :seconds)
+      offset = Timestamp.unix_in(1, :second)
 
       assert offset > now
       assert_in_delta offset, now, 1.5
