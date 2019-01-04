@@ -16,7 +16,7 @@ defmodule Kiq.Queue.Scheduler do
   defmodule State do
     @moduledoc false
 
-    defstruct fetch_interval: 1_000, pool: nil, set: nil
+    defstruct [:pool, :set, fetch_interval: 1_000]
   end
 
   @spec start_link(opts :: options()) :: GenServer.on_start()
@@ -26,9 +26,12 @@ defmodule Kiq.Queue.Scheduler do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @spec random_interval(average :: pos_integer()) :: pos_integer()
-  def random_interval(average) do
-    trunc(average * :rand.uniform() + average / 2)
+  @doc false
+  @spec random_interval(pos_integer(), pos_integer()) :: pos_integer()
+  def random_interval(average, jitter \\ 10) do
+    weight = 1.0 - (jitter / 2 - :rand.uniform(jitter)) / 100.0
+
+    trunc(average * weight)
   end
 
   # Callbacks
