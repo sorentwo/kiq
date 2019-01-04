@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- [Kiq.Job] Keys within job arguments are no longer converted to atoms. This is
+  for safe execution and is in line with how Phoenix passes controller
+  arguments.
 - [Kiq.Client] Enqueue all jobs in a single pipelined command. This moves all of
   the unique, scheduling and enqueueing logic into a lua script. The script
   reduces the number of round trips to redis and enabled pipelining. Overall
