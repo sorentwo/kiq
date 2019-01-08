@@ -3,7 +3,7 @@ defmodule Kiq.Client.Stats do
 
   import Redix, only: [noreply_pipeline: 2]
 
-  alias Kiq.{Heartbeat, RunningJob, Timestamp}
+  alias Kiq.{Encoder, Heartbeat, RunningJob, Timestamp}
 
   @typep conn :: GenServer.server()
   @typep resp :: :ok | {:error, atom() | Redix.Error.t()}
@@ -14,7 +14,7 @@ defmodule Kiq.Client.Stats do
 
     wkey = "#{key}:workers"
     beat = Timestamp.unix_now() |> to_string()
-    info = Jason.encode!(heartbeat)
+    info = Encoder.encode(heartbeat)
 
     commands = [
       ["SADD", "processes", key],

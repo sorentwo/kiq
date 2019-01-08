@@ -42,7 +42,7 @@ defmodule Kiq.Job do
   [1]: https://github.com/mperham/sidekiq/wiki/Job-Format
   """
 
-  alias Kiq.Timestamp
+  alias Kiq.{Encoder, Timestamp}
 
   @type t :: %__MODULE__{
           jid: binary(),
@@ -179,7 +179,7 @@ defmodule Kiq.Job do
   def encode(%__MODULE__{} = job) do
     map = to_map(job)
 
-    with {:ok, encoded} <- Jason.encode(map) do
+    with {:ok, encoded} <- Encoder.encode(map) do
       encoded
     end
   end

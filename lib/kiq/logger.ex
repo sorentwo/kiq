@@ -3,12 +3,14 @@ defmodule Kiq.Logger do
 
   require Logger
 
+  alias Kiq.Encoder
+
   @spec log(map()) :: :ok
   def log(payload) when is_map(payload) do
     Logger.info(fn ->
       payload
       |> Map.put(:source, "kiq")
-      |> Jason.encode!()
+      |> Encoder.encode()
     end)
   end
 end

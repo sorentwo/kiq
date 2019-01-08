@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+
+- [Kiq.Encoder] Wrap `Jason.encode` and attempt to sanitize terms that can't be
+  represented as JSON. This is primarily a safeguard against enqueuing jobs with
+  structs or tuples as arguments.
+
 ### Fixed
 
 - [Kiq.Client.Resurrection] Correct usage of SCAN to ensure all backup queues
