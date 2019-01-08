@@ -16,6 +16,8 @@ cache:
   directories:
     - ~/.mix
     - ~/.hex
+    - deps
+    - _build
 jobs:
   include:
     - stage: format
