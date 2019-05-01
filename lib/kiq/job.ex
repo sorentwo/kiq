@@ -177,11 +177,9 @@ defmodule Kiq.Job do
   """
   @spec encode(job :: t()) :: binary() | {:error, Exception.t()}
   def encode(%__MODULE__{} = job) do
-    map = to_map(job)
-
-    with {:ok, encoded} <- Encoder.encode(map) do
-      encoded
-    end
+    job
+    |> to_map()
+    |> Encoder.encode()
   end
 
   @doc """
