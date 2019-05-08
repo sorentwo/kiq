@@ -3,13 +3,11 @@ defmodule Kiq.Reporter.Instrumenter do
 
   use Kiq.Reporter
 
-  import Telemetry, only: [execute: 3]
-
   alias Kiq.Job
 
   @impl Reporter
   def handle_started(%Job{class: class, queue: queue}, state) do
-    execute([:kiq, :job, :started], 1, %{class: class, queue: queue})
+    :telemetry.execute([:kiq, :job, :started], %{value: 1}, %{class: class, queue: queue})
 
     state
   end
@@ -18,7 +16,7 @@ defmodule Kiq.Reporter.Instrumenter do
   def handle_success(%Job{class: class, queue: queue}, meta, state) do
     timing = Keyword.get(meta, :timing, 0)
 
-    execute([:kiq, :job, :success], timing, %{class: class, queue: queue})
+    :telemetry.execute([:kiq, :job, :success], %{timing: timing}, %{class: class, queue: queue})
 
     state
   end
@@ -27,14 +25,14 @@ defmodule Kiq.Reporter.Instrumenter do
   def handle_aborted(%Job{class: class, queue: queue}, meta, state) do
     reason = Keyword.get(meta, :reason, :unknown)
 
-    execute([:kiq, :job, :aborted], 1, %{class: class, queue: queue, reason: reason})
+    :telemetry.execute([:kiq, :job, :aborted], %{value: 1}, %{class: class, queue: queue, reason: reason})
 
     state
   end
 
   @impl Reporter
   def handle_failure(%Job{class: class, queue: queue}, error, _stack, state) do
-    execute([:kiq, :job, :failure], 1, %{class: class, queue: queue, error: error_name(error)})
+    :telemetry.execute([:kiq, :job, :failure], %{value: 1}, %{class: class, queue: queue, error: error_name(error)})
 
     state
   end

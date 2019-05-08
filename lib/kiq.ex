@@ -304,7 +304,7 @@ defmodule Kiq do
         end
       end
 
-      Telemetry.attach([:kiq, :job, :success], KiqJobLogger, :handle_event, nil)
+      :telemetry.attach([:kiq, :job, :success], &KiqJobLogger.handle_event/4, nil)
 
   Here is a reference for the available metrics:
 
