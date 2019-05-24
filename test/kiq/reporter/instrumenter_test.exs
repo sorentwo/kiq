@@ -54,7 +54,8 @@ defmodule Kiq.Reporter.InstrumenterTest do
 
     Reporter.handle_failure(job, %RuntimeError{}, [], nil)
 
-    assert_received {:failure, %{value: 1}, %{class: "Worker", queue: "events", error: "RuntimeError"}}
+    assert_received {:failure, %{value: 1},
+                     %{class: "Worker", queue: "events", error: "RuntimeError"}}
   after
     :telemetry.detach("test-failure")
   end

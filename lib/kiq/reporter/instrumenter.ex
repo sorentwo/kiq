@@ -25,14 +25,22 @@ defmodule Kiq.Reporter.Instrumenter do
   def handle_aborted(%Job{class: class, queue: queue}, meta, state) do
     reason = Keyword.get(meta, :reason, :unknown)
 
-    :telemetry.execute([:kiq, :job, :aborted], %{value: 1}, %{class: class, queue: queue, reason: reason})
+    :telemetry.execute([:kiq, :job, :aborted], %{value: 1}, %{
+      class: class,
+      queue: queue,
+      reason: reason
+    })
 
     state
   end
 
   @impl Reporter
   def handle_failure(%Job{class: class, queue: queue}, error, _stack, state) do
-    :telemetry.execute([:kiq, :job, :failure], %{value: 1}, %{class: class, queue: queue, error: error_name(error)})
+    :telemetry.execute([:kiq, :job, :failure], %{value: 1}, %{
+      class: class,
+      queue: queue,
+      error: error_name(error)
+    })
 
     state
   end
