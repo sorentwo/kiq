@@ -1,11 +1,9 @@
 language: elixir
 sudo: false
 elixir:
-  - 1.6
-  - 1.7
+  - 1.8
 otp_release:
-  - 20.2
-  - 21.1
+  - 22.0
 env:
   - MIX_ENV=test
 script:
@@ -24,10 +22,10 @@ jobs:
       env:
         - MIX_ENV=dev
       script: mix format --check-formatted
-      elixir: 1.7
+      elixir: 1.8
     - stage: dialyzer
       env:
         - MIX_ENV=dev
       before_script: travis_wait mix dialyzer --plt
       script: mix dialyzer --halt-exit-status
-      elixir: 1.7
+      elixir: 1.8
