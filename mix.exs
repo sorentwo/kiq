@@ -57,7 +57,7 @@ defmodule Kiq.MixProject do
       {:jason, "~> 1.1"},
       {:gen_stage, "~> 1.0"},
       {:nimble_parsec, "~> 0.5"},
-      {:redix, "~> 0.9"},
+      {:redix, "~> 1.0"},
       {:telemetry, "~> 0.4"},
       {:benchee, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
