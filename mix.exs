@@ -62,7 +62,7 @@ defmodule Kiq.MixProject do
       {:benchee, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19", only: [:dev, :test], runtime: false},
-      {:stream_data, "~> 0.4", only: [:test]}
+      {:stream_data, "~> 1.0", only: [:test]}
     ]
   end
 end
