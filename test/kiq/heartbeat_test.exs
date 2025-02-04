@@ -23,8 +23,8 @@ defmodule Kiq.HeartbeatTest do
       decoded =
         %{queues: [default: 5, special: 5], running: running}
         |> Heartbeat.new()
-        |> Jason.encode!()
-        |> Jason.decode!(keys: :atoms)
+        |> Kiq.JSON.encode!()
+        |> Kiq.JSON.decode!(atomize_keys: true)
 
       assert %{concurrency: 10, hostname: _, identity: _, pid: _} = decoded
       assert %{queues: ["default", "special"], labels: [], tag: ""} = decoded

@@ -11,7 +11,7 @@ defmodule Kiq.EncoderTest do
   def recode(term) do
     term
     |> Encoder.encode()
-    |> Jason.decode!(keys: :atoms)
+    |> Kiq.JSON.decode!(atomize_keys: true)
   end
 
   describe "encode/1" do

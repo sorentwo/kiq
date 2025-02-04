@@ -1,6 +1,6 @@
 defmodule Kiq.Encoder do
   @moduledoc """
-  This module wraps `Jason.encode/1` to provide consistent and safe JSON encoding.
+  This module wraps json implementations to provide consistent and safe JSON encoding.
 
   Typically this module shouldn't be used outside of Kiq, but the function is
   documented for reference on how job arguments are encoded.
@@ -20,15 +20,11 @@ defmodule Kiq.Encoder do
   """
   @spec encode(any()) :: binary()
   def encode(term) do
-    case Jason.encode(term) do
-      {:ok, encoded} ->
-        encoded
-
-      {:error, %Protocol.UndefinedError{}} ->
-        term
-        |> sanitize()
-        |> Jason.encode!()
-    end
+    Kiq.JSON.encode!(term)
+  rescue _e ->
+    term
+    |> sanitize()
+    |> Kiq.JSON.encode!()
   end
 
   defp sanitize(%_{} = struct) do

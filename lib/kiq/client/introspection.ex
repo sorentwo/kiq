@@ -85,7 +85,7 @@ defmodule Kiq.Client.Introspection do
     values
     |> Enum.chunk_every(2)
     |> Enum.into(%{}, fn [key, val] ->
-      {String.to_atom(key), Jason.decode!(val, keys: :atoms)}
+      {String.to_atom(key), Kiq.JSON.decode!(val, atomize_keys: true)}
     end)
   end
 end

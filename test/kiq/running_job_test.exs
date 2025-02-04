@@ -12,7 +12,7 @@ defmodule Kiq.RunningJobTest do
       assert is_binary(key)
       assert is_binary(encoded)
 
-      decoded = Jason.decode!(encoded, keys: :atoms)
+      decoded = Kiq.JSON.decode!(encoded, atomize_keys: true)
 
       assert %{queue: queue, payload: payload, run_at: run_at} = decoded
       assert queue == job.queue

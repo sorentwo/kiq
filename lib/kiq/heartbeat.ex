@@ -19,7 +19,8 @@ defmodule Kiq.Heartbeat do
           tag: binary()
         }
 
-  @derive {Jason.Encoder,
+
+  @derive {Kiq.JSON.json_encoder(),
            only: [:concurrency, :hostname, :identity, :labels, :pid, :queues, :started_at, :tag]}
 
   defstruct busy: 0,

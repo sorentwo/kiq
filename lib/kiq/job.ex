@@ -199,7 +199,7 @@ defmodule Kiq.Job do
   """
   @spec decode(input :: binary()) :: t() | {:error, Exception.t()}
   def decode(input) when is_binary(input) do
-    with {:ok, decoded} <- Jason.decode(input) do
+    with {:ok, decoded} <- Kiq.JSON.decode(input) do
       decoded
       |> Map.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
       |> new()

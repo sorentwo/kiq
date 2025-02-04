@@ -54,7 +54,7 @@ defmodule Kiq.MixProject do
 
   defp deps do
     [
-      {:jason, "~> 1.1"},
+      {:jason, "~> 1.1", optional: true},
       {:gen_stage, "~> 1.0"},
       {:nimble_parsec, "~> 1.1"},
       {:redix, "~> 1.0"},
