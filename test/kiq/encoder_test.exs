@@ -38,7 +38,7 @@ defmodule Kiq.EncoderTest do
 
     property "un-encodable terms are safely converted to inspected values" do
       check all term <- one_of([tuple({tuple({string(:printable), integer()})})]) do
-        assert <<value::binary>> = Encoder.encode(term)
+        assert <<_value::binary>> = Encoder.encode(term)
       end
     end
   end
